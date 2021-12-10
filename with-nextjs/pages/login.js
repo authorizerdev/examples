@@ -1,26 +1,21 @@
+import { useEffect } from 'react';
 import { Authorizer, useAuthorizer } from '@authorizerdev/authorizer-react';
 import { useRouter } from 'next/router';
-import { useEffect } from 'react';
-import Layout from '../components/Layout';
+import Layout from '../components/layout';
 
-const Login = () => {
+export default function Login() {
 	const { token } = useAuthorizer();
 	const router = useRouter();
-
 	useEffect(() => {
 		if (token) {
 			router.push('/');
 		}
-		return () => {};
 	}, [token]);
-
 	return (
 		<Layout>
-			<main className="w-1/3">
+			<div className="w-full md:w-2/4">
 				<Authorizer />
-			</main>
+			</div>
 		</Layout>
 	);
-};
-
-export default Login;
+}

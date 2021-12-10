@@ -1,10 +1,10 @@
 export default function sessionAPI(req, res) {
 	const data = JSON.parse(req.body);
-	let accessToken = data.accessToken;
-	let expiresAt = data.accessTokenExpiresAt;
+	const accessToken = data.accessToken;
+	const expiresAt = data.accessTokenExpiresAt;
 	if (!accessToken || !expiresAt) {
 		res.status(401).json({
-			message: 'Access token not found',
+			message: 'Unauthorized',
 		});
 	} else {
 		res.setHeader(
@@ -13,6 +13,6 @@ export default function sessionAPI(req, res) {
 				expiresAt * 1000
 			)};Secure=true;HttpOnly=true;Path=/`
 		);
-		res.status(200).json({ message: `cookie set successfully` });
+		res.status(200).json({ message: 'session created successfully' });
 	}
 }

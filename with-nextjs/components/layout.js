@@ -1,26 +1,19 @@
 import { useAuthorizer } from '@authorizerdev/authorizer-react';
 import Head from 'next/head';
-import { useEffect } from 'react';
 import Nav from './nav';
 
-const Layout = ({ children }) => {
-	const { loading, token } = useAuthorizer();
+export default function Layout({ children }) {
+	const { loading } = useAuthorizer();
 
 	if (loading) {
-		return (
-			<div className="h-screen w-screen flex justify-center items-center">
-				<h1 className="text-2xl">Loading...</h1>
-			</div>
-		);
+		return <h1 className="text-2xl">Loading...</h1>;
 	}
-
 	return (
 		<div>
 			<Head>
 				<title>Create Next App</title>
 				<link rel="icon" href="/favicon.ico" />
 			</Head>
-
 			<Nav />
 			<div className="flex flex-col items-center justify-center min-h-screen py-2">
 				{children}
@@ -38,6 +31,4 @@ const Layout = ({ children }) => {
 			</footer>
 		</div>
 	);
-};
-
-export default Layout;
+}

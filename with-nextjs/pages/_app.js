@@ -1,13 +1,12 @@
 import { AuthorizerProvider } from '@authorizerdev/authorizer-react';
-import 'tailwindcss/tailwind.css';
-import authorizer from '../config/authorizer';
+import authorizerConfig from '../config/authorizer-config';
+import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }) {
 	return (
 		<AuthorizerProvider
-			config={authorizer}
-			onTokenCallback={async ({ user, token }) => {
-				console.log('called...', user);
+			config={authorizerConfig}
+			onTokenCallback={async ({ token }) => {
 				await fetch('/api/session', {
 					method: 'POST',
 					body: JSON.stringify(token),

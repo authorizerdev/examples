@@ -1,51 +1,34 @@
 import { Authorizer } from '@authorizerdev/authorizer-js';
-import Layout from '../components/Layout';
+import Layout from '../components/layout';
+import authorizerConfig from '../config/authorizer-config';
 
-const Profile = ({ user }) => {
+export default function Profile({ user }) {
 	return (
-		<Layout>
-			<pre>{JSON.stringify(user, null, 2)}</pre>
-		</Layout>
+		<div>
+			<Layout>
+				<pre>{JSON.stringify(user, null, 2)}</pre>
+			</Layout>
+		</div>
 	);
-};
-
-export default Profile;
+}
 
 export async function getServerSideProps({ req, res }) {
-	const authorizerRef = new Authorizer({
-		authorizerURL: 'https://authorizer-demo.herokuapp.com',
-		redirectURL: 'http://localhost:3000',
-	});
-	console.log(req.cookies);
 	const token = req.cookies['authorizer-client'];
-	console.log(token);
-	try {
-		if (token) {
-			const session = await authorizerRef.getSession({
-				Authorization: `Bearer ${token}`,
-			});
-			return {
-				props: {
-					user: session.user,
-				},
-			};
-		} else {
-			return {
-				redirect: {
-					destination: '/login',
-					permanent: false,
-				},
-				props: { user: {} },
-			};
-		}
-	} catch (err) {
-		console.log(err);
+	const authorizerRef = new Authorizer(authorizerConfig);
+	const session = await authorizerRef.getSession({
+		Authorization: `Bearer ${token}`,
+	});
+	if (session && token) {
+		return {
+			props: { user: session.user }, // will be passed to the page component as props
+		};
+	} else {
 		return {
 			redirect: {
 				destination: '/login',
-				permanent: false,
+				permanent: true,
 			},
-			props: { user: {} },
+			props: {},
 		};
 	}
 }
