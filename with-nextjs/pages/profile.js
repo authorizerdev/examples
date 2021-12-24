@@ -13,11 +13,12 @@ export default function Profile({ user }) {
 }
 
 export async function getServerSideProps({ req, res }) {
-	const token = req.cookies['authorizer-client'];
+	const token = req.cookies['authorizer-client-next'];
 	const authorizerRef = new Authorizer(authorizerConfig);
 	const session = await authorizerRef.getSession({
 		Authorization: `Bearer ${token}`,
 	});
+
 	if (session && token) {
 		return {
 			props: { user: session.user }, // will be passed to the page component as props
