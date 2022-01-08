@@ -6,7 +6,7 @@ function MyApp({ Component, pageProps }) {
 	return (
 		<AuthorizerProvider
 			config={authorizerConfig}
-			onTokenCallback={async ({ token }) => {
+			onStateChangeCallback={async ({ token }) => {
 				await fetch('/api/session', {
 					method: 'POST',
 					body: JSON.stringify(token),

@@ -7,7 +7,7 @@
 	},
 	"dependencies": {
 		"@authorizerdev/authorizer-js": "^0.2.0",
-		"@authorizerdev/authorizer-react": "^0.3.0",
+		"@authorizerdev/authorizer-react": "^0.4.0",
 		"next": "latest",
 		"react": "^17.0.2",
 		"react-dom": "^17.0.2"
