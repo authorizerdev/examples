@@ -33,6 +33,15 @@ Install dependencies
 
 ## Step 5:
 
+Create redirect url
+
+```js
+const useProxy = false;
+const redirectUri = AuthSession.makeRedirectUri({ useProxy });
+```
+
+## Step 6:
+
 Configure Authorizer Client
 
 ```js
@@ -44,15 +53,6 @@ const authorizerRef = new Authorizer({
 	authorizerURL: authorizerURL,
 	redirectURL: redirectUri,
 });
-```
-
-## Step 6:
-
-Create redirect url
-
-```js
-const useProxy = false;
-const redirectUri = AuthSession.makeRedirectUri({ useProxy });
 ```
 
 ## Step 7

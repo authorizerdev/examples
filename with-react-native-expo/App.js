@@ -2,12 +2,15 @@ import * as AuthSession from 'expo-auth-session';
 import jwtDecode from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
-import { Alert, Button, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Button, StyleSheet, Text, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import { Authorizer } from '@authorizerdev/authorizer-js';
 
 // You need to swap out the Authorizer client id and domain with the one from your Authorizer client.
 // In your Authorizer client, you need to also add a url to your authorized redirect urls.
+
+const useProxy = false;
+const redirectUri = AuthSession.makeRedirectUri({ useProxy });
 
 const authorizerClientID = 'fec7f60f-efc0-42a7-9600-596daa4cc249';
 const authorizerURL = 'https://authorizer-demo.herokuapp.com';
@@ -17,9 +20,6 @@ const authorizerRef = new Authorizer({
 	authorizerURL: authorizerURL,
 	redirectURL: redirectUri,
 });
-
-const useProxy = false;
-const redirectUri = AuthSession.makeRedirectUri({ useProxy });
 
 const authorizerRefreshTokenKey = `authorizer_refresh_token`;
 
