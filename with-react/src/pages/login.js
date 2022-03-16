@@ -1,9 +1,15 @@
-import { Authorizer } from "@authorizerdev/authorizer-react";
+import { Authorizer } from '@authorizerdev/authorizer-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
-  return (
-    <div style={{ width: "50%" }}>
-      <Authorizer />
-    </div>
-  );
+	const navigate = useNavigate();
+	return (
+		<div style={{ width: '50%' }}>
+			<Authorizer
+				onLogin={() => {
+					navigate('/');
+				}}
+			/>
+		</div>
+	);
 }

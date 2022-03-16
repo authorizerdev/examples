@@ -15,6 +15,7 @@ export default function Layout({ children }) {
 				authorizerURL: 'https://authorizer-demo.herokuapp.com',
 				redirectURL:
 					typeof window !== 'undefined' ? window.location.origin : '/',
+				clientID: 'fec7f60f-efc0-42a7-9600-596daa4cc249',
 			}}
 		>
 			<div
