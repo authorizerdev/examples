@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@authorizerdev/authorizer-js@^0.4.0-beta.3":
-  version "0.4.0"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-js/-/authorizer-js-0.4.0.tgz"
-  integrity sha512-S3tpmP/xwZmmiB/1MoLYGL+Bvsj3v9af2eYm66UD0CpF1oi+pmrtlYUgV/XGsrpxX9BhXVzINtL4Msq61SX+/A==
+"@authorizerdev/authorizer-js@^0.7.0":
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-0.7.0.tgz#3dce4dc9e61a05975c0841f814786fb9d1ce909f"
+  integrity sha512-1lltwmF6dh2NWXu9VcbdFtYlQ0jLRisc2cXJ9fVMEo2a7qKu/UowcRNyzYGxFzw7igRjMaNx4e5PwcyzoNxAvg==
   dependencies:
     node-fetch "^2.6.1"
 
-"@authorizerdev/authorizer-react@latest":
-  version "0.9.0"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-0.9.0.tgz"
-  integrity sha512-F2Ptck9SvAOyEeuiZY0R+1dyCJGg7/cexeSNj5MKUT9yRxNHQWKeToit+jNDepow+NHl8lLhmUbyxd1t0ZQ9cA==
+"@authorizerdev/authorizer-react@0.13.0":
+  version "0.13.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-react/-/authorizer-react-0.13.0.tgz#c045d58b2cd1215e212ec55cfd9c41405f8798a6"
+  integrity sha512-8iCjwZ2IfQfM1g0neSpZsMqTkTs1WO6LWEfc9mHWqHDo42gJDK1gtc3rd9G6R38HQ0DmzApaCCIMaiFMcRRI+g==
   dependencies:
-    "@authorizerdev/authorizer-js" "^0.4.0-beta.3"
+    "@authorizerdev/authorizer-js" "^0.7.0"
     final-form "^4.20.2"
     react-final-form "^6.5.3"
     styled-components "^5.3.0"
