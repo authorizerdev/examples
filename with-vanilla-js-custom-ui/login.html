@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<link rel="stylesheet" href="style.css" />
+		<title>Authorizer With Vanilla JS App</title>
+	</head>
+	<body>
+		<div id="app">
+			<h1>Login</h1>
+			<form method="POST" onsubmit="handleLogin(event)">
+				<div>
+					<label for="email">Email</label>
+					<input
+						type="email"
+						placeholder="email"
+						id="email"
+						name="email"
+						required
+					/>
+				</div>
+				<div>
+					<label for="password">Password</label>
+					<input
+						type="password"
+						placeholder="password"
+						id="password"
+						name="password"
+						required
+					/>
+				</div>
+				<button type="submit">submit</button>
+			</form>
+		</div>
+		<script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
+		<script>
+			const authorizerRef = new authorizerdev.Authorizer({
+				authorizerURL: `https://authorizer-demo.herokuapp.com`,
+				redirectURL: window.location.origin,
+				clientID: 'fec7f60f-efc0-42a7-9600-596daa4cc249',
+			});
+
+			async function handleLogin(e) {
+				e.preventDefault();
+				const formData = new FormData(e.target);
+				const values = Object.fromEntries(formData);
+				console.log({ values });
+				try {
+					const res = await authorizerRef.login(values);
+					console.log({ res });
+					window.location.replace('/');
+				} catch (error) {
+					console.log({ error });
+				}
+			}
+		</script>
+	</body>
+</html>
