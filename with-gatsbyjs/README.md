@@ -16,11 +16,27 @@
 
 # Using Authorizer with Gatsby
 
-# Step 1
+## Step 1: Get Authorizer Instance
 
-Have authorizer instance up and running
+Deploy production ready Authorizer instance using one click deployment options available below
 
-# Step 2
+| **Infra provider** |                                                                                                                **One-click link**                                                                                                                |               **Additional information**               |
+| :----------------: | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: | :----------------------------------------------------: |
+|    Railway.app     | <a target="_blank" href="https://railway.app/new/template?template=https://github.com/authorizerdev/authorizer-railway&amp;plugins=postgresql,redis"><img src="https://railway.app/button.svg" style="height: 44px" alt="Deploy on Railway"></a> | [docs](https://docs.authorizer.dev/deployment/railway) |
+|       Heroku       |       <a target="_blank" href="https://heroku.com/deploy?template=https://github.com/authorizerdev/authorizer-heroku"><img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku" style="height: 44px !important;"></a>        | [docs](https://docs.authorizer.dev/deployment/heroku)  |
+|       Render       |                     <a target="_blank" href="https://render.com/deploy?repo=https://github.com/authorizerdev/authorizer-render"><img alt="render button" src="https://render.com/images/deploy-to-render-button.svg" /></a>                      | [docs](https://docs.authorizer.dev/deployment/render)  |
+
+For more information check [docs](https://docs.authorizer.dev/getting-started/)
+
+## Step 2: Setup Instance
+
+- Open authorizer instance endpoint in browser
+- Signup with a secure password
+- Configure social logins / smtp server and other environment variables based on your needs
+
+For more information please check [docs](https://docs.authorizer.dev/core/env/)
+
+## Step 3: Bootstrap Gatsby Site
 
 Run `npm init gatsby` this will call `create-gatsby` and help you bootstrap gatsby site
 
@@ -32,9 +48,23 @@ Answer the few bootstrapping questions,
 - Selected `styled-components` for styling system
 - Select the additional features you want
 
-# Step 3
+## Step 3: Install `@authorizerdev/authorizer-react`
+
+```sh
+npm install @authorizerdev/authorizer-react
+```
+
+OR
+
+```sh
+yarn add @authorizerdev/authorizer-react
+```
+
+## Step 4: Create Root Layout
 
 Create `src/components/layout.js` as the root layout for app with `AuthorizerProvider`
+
+> Note: Replace `YOUR_AUTHORIZER_URL` with your authorizer instance URL obtained on step 2. Also replace `YOUR_CLIENT_ID` with your client ID obtained from dashboard in step 2.
 
 ```jsx
 import React from 'react';
@@ -51,9 +81,10 @@ export default function Layout({ children }) {
 	return (
 		<AuthorizerProvider
 			config={{
-				authorizerURL: 'https://authorizer-demo.herokuapp.com',
+				authorizerURL: 'YOUR_AUTHORIZER_URL',
 				redirectURL:
 					typeof window !== 'undefined' ? window.location.origin : '/',
+				clientID: 'YOUR_CLIENT_ID',
 			}}
 		>
 			<div
@@ -71,11 +102,9 @@ export default function Layout({ children }) {
 }
 ```
 
-# Step 4
+## Step 5: Update browser config
 
-Add root layout in gatsby browser config
-
-Create `gatsby-browser.js` in the root of project with following context
+Add root layout in gatsby browser config. Create `gatsby-browser.js` in the root of project with following content
 
 ```jsx
 const React = require('react');
@@ -89,11 +118,11 @@ exports.wrapPageElement = ({ element, props }) => {
 
 This will prevent re-rendering of layout every time the page changes.
 
-# Step 5
+## Step 6: Add Authorizer component
 
-Add `Authorizer` component in index page with redirects.
+Add `Authorizer` component in `src/pages/index.js` page with redirects.
 
-Here incase if user is logged in we would like to redirect them to private route using `useEffect`
+Here in case if user is logged in we would like to redirect them to private route using `useEffect`
 
 Replace content of Index page with following
 
@@ -131,9 +160,7 @@ const IndexPage = () => {
 export default IndexPage;
 ```
 
-# Step 6
-
-Add private routes layout
+## Step 7: Add private route layout
 
 Add `src/components/private.js` with following content
 
@@ -177,9 +204,7 @@ export default function PrivateLayout({ children }) {
 }
 ```
 
-# Step 7
-
-Add private route
+## Step 7: Add private route
 
 Add `src/pages/private/dashboard.js` with following content
 
