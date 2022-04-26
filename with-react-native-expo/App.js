@@ -12,8 +12,8 @@ import { Authorizer } from '@authorizerdev/authorizer-js';
 const useProxy = false;
 const redirectUri = AuthSession.makeRedirectUri({ useProxy });
 
-const authorizerClientID = 'fec7f60f-efc0-42a7-9600-596daa4cc249';
-const authorizerURL = 'https://authorizer-demo.herokuapp.com';
+const authorizerClientID = '96fed66c-9779-4694-a79a-260fc489ce33';
+const authorizerURL = 'https://demo.authorizer.dev';
 const authorizationEndpoint = `${authorizerURL}/authorize`;
 const authorizerRef = new Authorizer({
 	clientID: authorizerClientID,
