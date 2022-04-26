@@ -51,7 +51,7 @@
 			const logoutBtn = document.getElementById('logout');
 			logoutBtn.addEventListener('click', async function () {
 				await authorizerRef.logout();
-				window.location.replace('/');
+				window.location.replace('/login.html');
 			});
 
 			async function onload() {
