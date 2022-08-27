@@ -10,7 +10,7 @@
 		"eject": "expo eject"
 	},
 	"dependencies": {
-		"@authorizerdev/authorizer-js": "^0.12.0",
+		"@authorizerdev/authorizer-js": "^1.0.0",
 		"expo": "~44.0.0",
 		"expo-auth-session": "~3.5.0",
 		"expo-random": "~12.1.1",
