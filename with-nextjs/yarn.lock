@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@authorizerdev/authorizer-js@0.12.0", "@authorizerdev/authorizer-js@^0.12.0":
-  version "0.12.0"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-js/-/authorizer-js-0.12.0.tgz"
-  integrity sha512-XgRxAkpRobbp15DeHygfOebCxlPJAXbVaLDckYyuz/PUDTyeMIG65RV5rQHYcL4oeoPqNc42dewwM3ST8JSiNg==
+"@authorizerdev/authorizer-js@1.0.0", "@authorizerdev/authorizer-js@^1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-1.0.0.tgz#b33192b3a3f95b46f89dfa26500915ea056963e0"
+  integrity sha512-TtXA8y06CIZ5f+nk1tgPiSpGR9neCkGHtmKLqGWjWPdObDfekRU5qMtpC2S2uEljAI53mnueLZKmbd9hrReTag==
   dependencies:
-    node-fetch "^2.6.1"
+    cross-fetch "^3.1.5"
 
-"@authorizerdev/authorizer-react@0.23.0":
-  version "0.23.0"
-  resolved "https://registry.npmjs.org/@authorizerdev/authorizer-react/-/authorizer-react-0.23.0.tgz"
-  integrity sha512-vOwwrrAorxhVsqpf3BO2In8PMg8RAbGBFu8uLDOvUzkwG0ny5CPg6jLx9+dCkRRsqgB+agBoQoIuXEUP0ijsTA==
+"@authorizerdev/authorizer-react@1.0.0":
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-react/-/authorizer-react-1.0.0.tgz#ffd92937e09ad3caa3fd487ff905089309c7f4c1"
+  integrity sha512-lXckUe46LTcH+hFxIxPEewQR1/ktd2awoqZsMZZaa0AjQJoekJaUcouBuX0F66VyQG0qezuyEQrye0Z93Ffgug==
   dependencies:
-    "@authorizerdev/authorizer-js" "^0.12.0"
+    "@authorizerdev/authorizer-js" "^1.0.0"
     final-form "^4.20.2"
     react-final-form "^6.5.3"
     styled-components "^5.3.0"
@@ -827,6 +827,13 @@ create-hmac@^1.1.0, create-hmac@^1.1.4, create-hmac@^1.1.7:
     ripemd160 "^2.0.0"
     safe-buffer "^5.0.1"
     sha.js "^2.4.8"
+
+cross-fetch@^3.1.5:
+  version "3.1.5"
+  resolved "https://registry.yarnpkg.com/cross-fetch/-/cross-fetch-3.1.5.tgz#e1389f44d9e7ba767907f7af8454787952ab534f"
+  integrity sha512-lvb1SBsI0Z7GDwmuid+mU3kWVBwTVUbe7S0H52yaaAdQOXq2YktTCZdlAcNKFzE6QtRz0snpw9bNiPeOIkkQvw==
+  dependencies:
+    node-fetch "2.6.7"
 
 crypto-browserify@3.12.0:
   version "3.12.0"
@@ -1735,10 +1742,10 @@ node-fetch@2.6.1:
   resolved "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.1.tgz"
   integrity sha512-V4aYg89jEoVRxRb2fJdAg8FHvI7cEyYdVAh94HH0UIK8oJxUfkjlDQN9RbMx+bEjP7+ggMiFRprSti032Oipxw==
 
-node-fetch@^2.6.1:
-  version "2.6.6"
-  resolved "https://registry.npmjs.org/node-fetch/-/node-fetch-2.6.6.tgz"
-  integrity sha512-Z8/6vRlTUChSdIgMa51jxQ4lrw/Jy5SOW10ObaA47/RElsAN2c5Pn8bTgFGWn/ibwzXTE8qwr1Yzx28vsecXEA==
+node-fetch@2.6.7:
+  version "2.6.7"
+  resolved "https://registry.yarnpkg.com/node-fetch/-/node-fetch-2.6.7.tgz#24de9fba827e3b4ae44dc8b20256a379160052ad"
+  integrity sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==
   dependencies:
     whatwg-url "^5.0.0"
 
