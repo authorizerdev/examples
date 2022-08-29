@@ -9,10 +9,10 @@
   dependencies:
     "@jridgewell/trace-mapping" "^0.3.0"
 
-"@authorizerdev/authorizer-js@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-1.0.0.tgz#b33192b3a3f95b46f89dfa26500915ea056963e0"
-  integrity sha512-TtXA8y06CIZ5f+nk1tgPiSpGR9neCkGHtmKLqGWjWPdObDfekRU5qMtpC2S2uEljAI53mnueLZKmbd9hrReTag==
+"@authorizerdev/authorizer-js@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-1.1.0.tgz#1b95e26e1b1f8f56368faea93a150aa8b7b537c8"
+  integrity sha512-MdEw1SjhIm7pXq20AscHSbnAta2PC3w7GNBY52/OzmlBXUGH3ooUQX/aszbYOse3FlhapcrGrRvg4sNM7faGAg==
   dependencies:
     cross-fetch "^3.1.5"
 

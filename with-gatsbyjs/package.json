@@ -15,7 +15,7 @@
 		"clean": "gatsby clean"
 	},
 	"dependencies": {
-		"@authorizerdev/authorizer-react": "^1.0.0",
+		"@authorizerdev/authorizer-react": "^1.1.0",
 		"@mdx-js/mdx": "^1.6.22",
 		"@mdx-js/react": "^1.6.22",
 		"babel-plugin-styled-components": "^2.0.2",

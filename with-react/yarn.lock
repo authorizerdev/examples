@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@authorizerdev/authorizer-js@^1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-1.0.0.tgz#b33192b3a3f95b46f89dfa26500915ea056963e0"
-  integrity sha512-TtXA8y06CIZ5f+nk1tgPiSpGR9neCkGHtmKLqGWjWPdObDfekRU5qMtpC2S2uEljAI53mnueLZKmbd9hrReTag==
+"@authorizerdev/authorizer-js@^1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-1.1.0.tgz#1b95e26e1b1f8f56368faea93a150aa8b7b537c8"
+  integrity sha512-MdEw1SjhIm7pXq20AscHSbnAta2PC3w7GNBY52/OzmlBXUGH3ooUQX/aszbYOse3FlhapcrGrRvg4sNM7faGAg==
   dependencies:
     cross-fetch "^3.1.5"
 
-"@authorizerdev/authorizer-react@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-react/-/authorizer-react-1.0.0.tgz#ffd92937e09ad3caa3fd487ff905089309c7f4c1"
-  integrity sha512-lXckUe46LTcH+hFxIxPEewQR1/ktd2awoqZsMZZaa0AjQJoekJaUcouBuX0F66VyQG0qezuyEQrye0Z93Ffgug==
+"@authorizerdev/authorizer-react@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-react/-/authorizer-react-1.1.0.tgz#3fdf5fd3d6586a115700a0df5a969cb1f59216c8"
+  integrity sha512-8ooyBREFI6ohHApVOPQitFr7T0w0SlpEVZruvU9oqa8OQ77UBxLQh+PCRKKPw7FeQRdCdh/VQyl17W7Xphp1NA==
   dependencies:
-    "@authorizerdev/authorizer-js" "^1.0.0"
+    "@authorizerdev/authorizer-js" "^1.1.0"
     final-form "^4.20.2"
     react-final-form "^6.5.3"
     styled-components "^5.3.0"
