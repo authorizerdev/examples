@@ -14,5 +14,5 @@ const getUserData = async () => {
 
 export default async function Profile() {
   const user = await getUserData();
-  return user ? <pre>{JSON.stringify(user, null, 2)}</pre> : <h1>UNAUTH</h1>;
+  return user ? <pre>{JSON.stringify(user, null, 2)}</pre> : null;
 }

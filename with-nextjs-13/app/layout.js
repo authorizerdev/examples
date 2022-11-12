@@ -1,7 +1,6 @@
 'use client';
 
 import { AuthorizerProvider } from '@authorizerdev/authorizer-react';
-import Head from 'next/head';
 import Nav from '../components/nav';
 import authorizerConfig from '../config/authorizer-config';
 import '../styles/globals.css';
