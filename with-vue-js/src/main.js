@@ -1,6 +1,6 @@
 import { createApp } from 'vue';
-import '../node_modules/authorizer-vue/dist/library.css';
 import authorizer from 'authorizer-vue';
+import 'authorizer-vue/dist/library.css';
 
 import App from './App.vue';
 import router from './router';
