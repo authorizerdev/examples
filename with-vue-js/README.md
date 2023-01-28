@@ -1,24 +1,14 @@
-# with-vue-js
+# Authorizer Example with Vue JS
 
-## Project setup
-```
-yarn install
-```
+## Local Setup
 
-### Compiles and hot-reloads for development
-```
-yarn serve
-```
-
-### Compiles and minifies for production
-```
-yarn build
-```
-
-### Lints and fixes files
-```
-yarn lint
-```
+- Clone the repo `git clone https://github.com/authorizerdev/examples.git`
+- Change directory to react JS `cd with-vue-js`
+- Install dependencies `yarn install`
+- Start project `yarn serve`
+- To get a minified production build `yarn build`
+- Lint and fix files `yarn lint`
 
 ### Customize configuration
+
 See [Configuration Reference](https://cli.vuejs.org/config/).
