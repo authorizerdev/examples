@@ -9,6 +9,7 @@
 - To get a minified production build `yarn build`
 - Lint and fix files `yarn lint`
 
-### Customize configuration
+## CodeSandboxLink:
 
-See [Configuration Reference](https://cli.vuejs.org/config/).
+- App: https://dzfgp8.csb.app/
+- Code: https://codesandbox.io/s/authorizer-vue-example-dzfgp8
