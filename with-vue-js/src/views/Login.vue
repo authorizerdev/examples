@@ -9,22 +9,24 @@
 <script>
 import { inject, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { AuthorizerRoot } from 'authorizer-vue-ts';
 export default {
 	name: 'Login',
+	components: {
+		'authorizer-root': AuthorizerRoot,
+	},
 	setup() {
 		const useAuthorizer = inject('useAuthorizer');
-		const {
-			// user, config,
-			token,
-		} = useAuthorizer();
-		function onLogin() {
-			console.log('test login');
-		}
+		const { token } = useAuthorizer();
 		const router = useRouter();
+		const onLogin = () => {
+			console.log('test login');
+		};
 		watch(
 			token,
-			function (newvalue) {
+			(newvalue) => {
 				if (newvalue) {
+					console.log('access token ==>> ', token.value.access_token);
 					router.push('/dashboard');
 				}
 			},
@@ -32,14 +34,6 @@ export default {
 				immediate: true,
 			}
 		);
-		// watch(user, function (newvalue, oldvalue) {
-		// 	console.log('old value from client ==>> ', oldvalue);
-		// 	console.log('new value from client ==>> ', newvalue);
-		// });
-		// watch(config.is_google_login_enabled, function (newvalue, oldvalue) {
-		// 	console.log('old value from client ==>> ', oldvalue);
-		// 	console.log('new value from client ==>> ', newvalue);
-		// });
 		return {
 			onLogin,
 		};

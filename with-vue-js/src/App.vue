@@ -24,7 +24,11 @@
 </template>
 
 <script>
+import { AuthorizerProvider } from 'authorizer-vue-ts';
 export default {
+	components: {
+		'authorizer-provider': AuthorizerProvider,
+	},
 	setup() {
 		const stateChangeCallback = (state) => {
 			console.log('state changes from client ==>> ', state);

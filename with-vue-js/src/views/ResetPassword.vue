@@ -5,8 +5,12 @@
 </template>
 
 <script>
+import { AuthorizerResetPassword } from 'authorizer-vue-ts';
 export default {
 	name: 'ResetPassword',
+	components: {
+		'authorizer-reset-password': AuthorizerResetPassword,
+	},
 };
 </script>
 
