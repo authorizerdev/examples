@@ -10,6 +10,8 @@
 				authorizerURL: 'http://localhost:8080',
 				redirectURL: typeof window != 'undefined' ? window.location.origin : ``
 			}}
+			onStateChangeCallback={(/** @type {any} */ state) =>
+				console.log('updated state ==>> ', state)}
 		>
 			<slot />
 		</AuthorizerProvider>
