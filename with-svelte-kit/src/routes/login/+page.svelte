@@ -5,11 +5,13 @@
 
 	const store = getContext('authorizerContext');
 
-	const unsubscribe = store.subscribe((/** @type {{ token: string; }} */ data) => {
-		if (data.token && browser) {
-			window.location.href = '/dashboard';
+	const unsubscribe = store.subscribe(
+		(/** @type {{ token: string; loading: boolean; }} */ data) => {
+			if (!data.loading && data.token && browser) {
+				window.location.href = '/dashboard';
+			}
 		}
-	});
+	);
 
 	onDestroy(unsubscribe);
 </script>

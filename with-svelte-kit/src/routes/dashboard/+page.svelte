@@ -9,6 +9,10 @@
 	const store = getContext('authorizerContext');
 	const unsubscribe = store.subscribe((/** @type {any} */ data) => {
 		state = data;
+		// state.loading should be true when the token is not set initially
+		// if (!state.loading && !state.token && browser) {
+		// 	window.location.href = '/login';
+		// }
 	});
 	onDestroy(unsubscribe);
 	const logoutHandler = async () => {
