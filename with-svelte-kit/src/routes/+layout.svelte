@@ -7,8 +7,7 @@
 	<div class="component-warpper">
 		<AuthorizerProvider
 			config={{
-				authorizerURL: 'http://localhost:8080',
-				redirectURL: typeof window != 'undefined' ? window.location.origin : ``
+				authorizerURL: 'http://localhost:8080'
 			}}
 		>
 			<slot />
