@@ -1,60 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8" />
-		<link rel="icon" type="image/svg+xml" href="favicon.svg" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<link rel="stylesheet" href="style.css" />
-		<title>Authorizer With Vanilla JS App</title>
-	</head>
-	<body>
-		<div id="app">
-			<h1>Login</h1>
-			<form method="POST" onsubmit="handleLogin(event)">
-				<div>
-					<label for="email">Email</label>
-					<input
-						type="email"
-						placeholder="email"
-						id="email"
-						name="email"
-						required
-					/>
-				</div>
-				<div>
-					<label for="password">Password</label>
-					<input
-						type="password"
-						placeholder="password"
-						id="password"
-						name="password"
-						required
-					/>
-				</div>
-				<button type="submit">submit</button>
-			</form>
-		</div>
-		<script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
-		<script>
-			const authorizerRef = new authorizerdev.Authorizer({
-				authorizerURL: `https://demo.authorizer.dev`,
-				redirectURL: window.location.origin,
-				clientID: '96fed66c-9779-4694-a79a-260fc489ce33',
-			});
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Authorizer With Vanilla JS App</title>
+  </head>
+  <body>
+    <div id="app">
+      <h1>Login</h1>
+      <form method="POST" onsubmit="handleLogin(event)">
+        <div>
+          <label for="email">Email</label>
+          <input
+            type="email"
+            placeholder="email"
+            id="email"
+            name="email"
+            required
+          />
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input
+            type="password"
+            placeholder="password"
+            id="password"
+            name="password"
+            required
+          />
+        </div>
+        <button type="submit">submit</button>
+      </form>
+    </div>
+    <script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
+    <script>
+      const authorizerRef = new authorizerdev.Authorizer({
+        authorizerURL: `https://demo.authorizer.dev`,
+        redirectURL: window.location.origin,
+        clientID: '96fed66c-9779-4694-a79a-260fc489ce33',
+      });
 
-			async function handleLogin(e) {
-				e.preventDefault();
-				const formData = new FormData(e.target);
-				const values = Object.fromEntries(formData);
-				console.log({ values });
-				try {
-					const res = await authorizerRef.login(values);
-					console.log({ res });
-					window.location.replace('/');
-				} catch (error) {
-					console.log({ error });
-				}
-			}
-		</script>
-	</body>
+      async function handleLogin(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const values = Object.fromEntries(formData);
+        console.log({ values });
+        try {
+          const { data, errors } = await authorizerRef.login(values);
+          console.log({ data });
+          window.location.replace('/');
+        } catch (error) {
+          console.log({ error });
+        }
+      }
+    </script>
+  </body>
 </html>

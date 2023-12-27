@@ -40,22 +40,20 @@
     signedsource "^1.0.0"
     yargs "^15.3.1"
 
-"@authorizerdev/authorizer-js@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-1.1.0.tgz#1b95e26e1b1f8f56368faea93a150aa8b7b537c8"
-  integrity sha512-MdEw1SjhIm7pXq20AscHSbnAta2PC3w7GNBY52/OzmlBXUGH3ooUQX/aszbYOse3FlhapcrGrRvg4sNM7faGAg==
+"@authorizerdev/authorizer-js@^2.0.0-beta.3":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-js/-/authorizer-js-2.0.0.tgz#4df1d8379ff3ba433fee0927ae96cf2df12a83f4"
+  integrity sha512-PTVuCrCkZkVPoo+l0+9PVFyP9frLp/L3FUtQDtAaN+ERuqx97DNF20tIH8khSvnXrkKv3lTJ/5iFWddy+dTAwg==
   dependencies:
     cross-fetch "^3.1.5"
 
-"@authorizerdev/authorizer-react@^1.1.0":
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-react/-/authorizer-react-1.1.0.tgz#3fdf5fd3d6586a115700a0df5a969cb1f59216c8"
-  integrity sha512-8ooyBREFI6ohHApVOPQitFr7T0w0SlpEVZruvU9oqa8OQ77UBxLQh+PCRKKPw7FeQRdCdh/VQyl17W7Xphp1NA==
+"@authorizerdev/authorizer-react@^1.2.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@authorizerdev/authorizer-react/-/authorizer-react-1.2.0.tgz#b26053677e2070b04ccc45e1bb91155eb97f9ac2"
+  integrity sha512-MtunZgh30rzY9jSADVP1DRC4sOBC82zx/yhK8O/1ufOAi7vTDZwPjDHIMrG/xWPNUYTCeFPEKpZlKyB+TH/M1w==
   dependencies:
-    "@authorizerdev/authorizer-js" "^1.1.0"
-    final-form "^4.20.2"
-    react-final-form "^6.5.3"
-    styled-components "^5.3.0"
+    "@authorizerdev/authorizer-js" "^2.0.0-beta.3"
+    validator "^13.11.0"
 
 "@babel/code-frame@7.12.11":
   version "7.12.11"
@@ -5348,13 +5346,6 @@ filter-obj@^1.1.0:
   resolved "https://registry.yarnpkg.com/filter-obj/-/filter-obj-1.1.0.tgz#9b311112bc6c6127a16e016c6c5d7f19e0805c5b"
   integrity sha512-8rXg1ZnX7xzy2NGDVkBVaAy+lSlPNwad13BtgSlLuxfIslyt5Vg64U7tFcCt4WS1R0hvtnQybT/IyCkGZ3DpXQ==
 
-final-form@^4.20.2:
-  version "4.20.7"
-  resolved "https://registry.yarnpkg.com/final-form/-/final-form-4.20.7.tgz#e7e2eb5fd952951d4fe6153d46043da2d68b207e"
-  integrity sha512-ii3X9wNfyBYFnDPunYN5jh1/HAvtOZ9aJI/TVk0MB86hZuOeYkb+W5L3icgwW9WWNztZR6MDU3En6eoZTUoFPg==
-  dependencies:
-    "@babel/runtime" "^7.10.0"
-
 finalhandler@1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/finalhandler/-/finalhandler-1.2.0.tgz#7d23fe5731b207b4640e4fcd00aec1f9207a7b32"
@@ -9373,13 +9364,6 @@ react-error-overlay@^6.0.11:
   resolved "https://registry.yarnpkg.com/react-error-overlay/-/react-error-overlay-6.0.11.tgz#92835de5841c5cf08ba00ddd2d677b6d17ff9adb"
   integrity sha512-/6UZ2qgEyH2aqzYZgQPxEnz33NJ2gNsnHA2o5+o4wW9bLM/JYQitNP9xPhsXwC08hMMovfGe/8retsdDsczPRg==
 
-react-final-form@^6.5.3:
-  version "6.5.9"
-  resolved "https://registry.yarnpkg.com/react-final-form/-/react-final-form-6.5.9.tgz#644797d4c122801b37b58a76c87761547411190b"
-  integrity sha512-x3XYvozolECp3nIjly+4QqxdjSSWfcnpGEL5K8OBT6xmGrq5kBqbA6+/tOqoom9NwqIPPbxPNsOViFlbKgowbA==
-  dependencies:
-    "@babel/runtime" "^7.15.4"
-
 react-is@^16.13.1, react-is@^16.7.0:
   version "16.13.1"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
@@ -10531,7 +10515,7 @@ style-to-object@0.3.0, style-to-object@^0.3.0:
   dependencies:
     inline-style-parser "0.1.1"
 
-styled-components@^5.3.0, styled-components@^5.3.3:
+styled-components@^5.3.3:
   version "5.3.5"
   resolved "https://registry.yarnpkg.com/styled-components/-/styled-components-5.3.5.tgz#a750a398d01f1ca73af16a241dec3da6deae5ec4"
   integrity sha512-ndETJ9RKaaL6q41B69WudeqLzOpY1A/ET/glXkNZ2T7dPjPqpPCXXQjDFYZWwNnE5co0wX+gTCqx9mfxTmSIPg==
@@ -11332,6 +11316,11 @@ valid-url@1.0.9, valid-url@^1.0.9:
   version "1.0.9"
   resolved "https://registry.yarnpkg.com/valid-url/-/valid-url-1.0.9.tgz#1c14479b40f1397a75782f115e4086447433a200"
   integrity sha512-QQDsV8OnSf5Uc30CKSwG9lnhMPe6exHtTXLRYX8uMwKENy640pU+2BgBL0LRbDh/eYRahNCS7aewCx0wf3NYVA==
+
+validator@^13.11.0:
+  version "13.11.0"
+  resolved "https://registry.yarnpkg.com/validator/-/validator-13.11.0.tgz#23ab3fd59290c61248364eabf4067f04955fbb1b"
+  integrity sha512-Ii+sehpSfZy+At5nPdnyMhx78fEoPDkR2XW/zimHEL3MyGJQOCQ7WeP20jPYRz7ZCpcKLB21NxuXHF3bxjStBQ==
 
 value-or-promise@1.0.11:
   version "1.0.11"
