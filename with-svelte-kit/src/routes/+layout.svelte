@@ -8,7 +8,8 @@
 		<AuthorizerProvider
 			config={{
 				authorizerURL: 'http://localhost:8080',
-				redirectURL: typeof window != 'undefined' ? window.location.origin : ``
+				redirectURL: typeof window != 'undefined' ? window.location.origin : ``,
+				clientID: 'YOUR_CLIENT_ID'
 			}}
 		>
 			<slot />

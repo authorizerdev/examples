@@ -1,3 +1,5 @@
+require('@authorizerdev/authorizer-react/styles.css');
+
 const React = require('react');
 const Layout = require('./src/components/layout').default;
 

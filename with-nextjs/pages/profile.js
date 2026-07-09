@@ -16,11 +16,11 @@ export async function getServerSideProps({ req, res }) {
 	const token = req.cookies['authorizer-client-next'];
 	const authorizerRef = new Authorizer(authorizerConfig);
 
-	const user = await authorizerRef.getProfile({
+	const { data: user, errors } = await authorizerRef.getProfile({
 		Authorization: `Bearer ${token}`,
 	});
 
-	if (user) {
+	if (user && !errors.length) {
 		return {
 			props: { user }, // will be passed to the page component as props
 		};

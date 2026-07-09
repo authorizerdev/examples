@@ -1,5 +1,4 @@
 import * as AuthSession from 'expo-auth-session';
-import jwtDecode from 'jwt-decode';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
 import { Alert, Button, StyleSheet, Text, View } from 'react-native';
@@ -13,10 +12,8 @@ const useProxy = false;
 const redirectUri = AuthSession.makeRedirectUri();
 console.log(redirectUri);
 
-// const authorizerClientID = '96fed66c-9779-4694-a79a-260fc489ce33';
-const authorizerClientID = 'a549e2a1-0323-453b-ba3f-6487e91b30e7';
-// const authorizerURL = 'https://demo.authorizer.dev';
-const authorizerURL = 'https://visited-cleaning-hi-known.trycloudflare.com';
+const authorizerClientID = 'YOUR_CLIENT_ID';
+const authorizerURL = 'https://demo.authorizer.dev';
 const authorizationEndpoint = `${authorizerURL}/authorize`;
 const tokenEndpoint = `${authorizerURL}/oauth/token`;
 const authorizerRef = new Authorizer({
@@ -77,7 +74,7 @@ export default function App() {
                 Authorization: `Bearer ${data?.access_token}`,
               });
             console.log({ profileData, profileErr });
-            setEmail(profileData?.email);
+            setEmail(profileData?.email ?? undefined);
           } catch (err) {
             console.error(JSON.stringify(err));
             await SecureStore.deleteItemAsync(authorizerRefreshTokenKey);
@@ -142,7 +139,7 @@ export default function App() {
               Authorization: `Bearer ${codeRes?.accessToken}`,
             });
           console.log({ profileData2: profileData, profileErr2: profileErr });
-          setEmail(profileData?.email);
+          setEmail(profileData?.email ?? undefined);
         }
       } catch (err) {
         console.log(err);

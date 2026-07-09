@@ -1,22 +1,27 @@
-# create-svelte
+# Authorizer Example with SvelteKit
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+Uses [`@authorizerdev/authorizer-svelte`](https://www.npmjs.com/package/@authorizerdev/authorizer-svelte).
 
-## Creating a project
+## Configuration
 
-If you're seeing this, you've probably already done this step. Congrats!
+Update the provider in `src/routes/+layout.svelte` with your instance details:
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
-
-# create a new project in my-app
-npm create svelte@latest my-app
+```svelte
+<AuthorizerProvider
+  config={{
+    authorizerURL: 'https://your-instance.example.com', // Base URL of your Authorizer instance
+    redirectURL: typeof window != 'undefined' ? window.location.origin : ``, // URL to redirect to after login
+    clientID: 'YOUR_CLIENT_ID' // Client ID from the Authorizer dashboard
+  }}
+>
 ```
+
+> Authorizer v2 server is configured entirely via CLI flags (no `.env` / OS env vars), e.g.
+> `./authorizer --database-type sqlite --database-url authorizer.db --admin-secret <secret>`
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Once you've installed dependencies with `npm install`, start a development server:
 
 ```bash
 npm run dev

@@ -32,6 +32,9 @@ const authMiddleware = async (req, res, next) => {
     if (errors.length) {
       throw new Error(errors[0].message);
     }
+    if (!data?.is_valid) {
+      throw new Error('Invalid token');
+    }
     req.user = data.claims;
   } catch (err) {
     console.error(err);

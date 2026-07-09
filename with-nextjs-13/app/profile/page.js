@@ -13,6 +13,7 @@ const getUserData = async () => {
 };
 
 export default async function Profile() {
-  const user = await getUserData();
-  return user ? <pre>{JSON.stringify(user, null, 2)}</pre> : null;
+  const { data: user, errors } = await getUserData();
+  if (errors.length || !user) return null;
+  return <pre>{JSON.stringify(user, null, 2)}</pre>;
 }

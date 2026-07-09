@@ -9,13 +9,12 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@authorizerdev/authorizer-js": "^2.0.0",
+    "@authorizerdev/authorizer-js": "^3.2.1",
     "expo": "~49.0.15",
     "expo-auth-session": "~5.0.2",
     "expo-crypto": "~12.4.1",
     "expo-secure-store": "~12.3.1",
     "expo-status-bar": "~1.6.0",
-    "jwt-decode": "^4.0.0",
     "react": "18.2.0",
     "react-native": "0.72.6"
   },

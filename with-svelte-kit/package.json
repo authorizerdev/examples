@@ -32,6 +32,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@authorizerdev/authorizer-svelte": "^0.0.1-beta5"
+		"@authorizerdev/authorizer-svelte": "^0.1.8"
 	}
 }

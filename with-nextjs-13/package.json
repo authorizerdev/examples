@@ -8,12 +8,11 @@
     "turboBuild": "tailwindcss input.css --output output.css && next build"
   },
   "dependencies": {
-    "@authorizerdev/authorizer-js": "^2.0.0",
-    "@authorizerdev/authorizer-react": "^1.2.0",
+    "@authorizerdev/authorizer-js": "^3.2.1",
+    "@authorizerdev/authorizer-react": "^2.0.7",
     "next": "^13.0.5",
     "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "styled-components": "^5.3.6"
+    "react-dom": "18.2.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.0",

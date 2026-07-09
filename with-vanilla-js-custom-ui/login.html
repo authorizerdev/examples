@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="/style.css" />
     <title>Authorizer With Vanilla JS App</title>
   </head>
   <body>
@@ -34,7 +34,7 @@
         <button type="submit">submit</button>
       </form>
     </div>
-    <script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
+    <script src="https://unpkg.com/@authorizerdev/authorizer-js@3.2.1/lib/authorizer.min.js"></script>
     <script>
       const authorizerRef = new authorizerdev.Authorizer({
         authorizerURL: `https://demo.authorizer.dev`,
@@ -47,13 +47,13 @@
         const formData = new FormData(e.target);
         const values = Object.fromEntries(formData);
         console.log({ values });
-        try {
-          const { data, errors } = await authorizerRef.login(values);
-          console.log({ data });
-          window.location.replace('/');
-        } catch (error) {
-          console.log({ error });
+        const { data, errors } = await authorizerRef.login(values);
+        if (errors.length) {
+          console.error(errors);
+          return;
         }
+        console.log({ data });
+        window.location.replace('/');
       }
     </script>
   </body>

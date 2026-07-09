@@ -3,6 +3,7 @@
 import { AuthorizerProvider } from '@authorizerdev/authorizer-react';
 import Nav from '../components/nav';
 import authorizerConfig from '../config/authorizer-config';
+import '@authorizerdev/authorizer-react/styles.css';
 import '../styles/globals.css';
 
 const onStateChangeCallback = async ({ token }) => {
