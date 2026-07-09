@@ -1,0 +1,17 @@
+{
+  "name": "authorizer-example-with-openid-connect",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Authorizer as a standards-compliant OIDC provider for a third-party Relying Party built with openid-client",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "openid-client": "6.8.4"
+  }
+}

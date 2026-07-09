@@ -1,0 +1,21 @@
+{
+  "name": "authorizer-example-with-microservices",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Service-to-service auth with Authorizer: JWKS-verified user JWTs at the edge, client_credentials machine tokens between services",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "setup": "node setup.js",
+    "start:gateway": "node gateway/server.js",
+    "start:orders": "node orders-service/server.js",
+    "start:billing": "node billing-service/server.js",
+    "demo": "node scripts/demo.js"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "jose": "6.2.3"
+  }
+}
