@@ -65,8 +65,8 @@ an allow-listed `Origin` **and** `Content-Type: application/json` or
 with `403 csrf_validation_failed` unless the server exempts
 `/oauth/saml/*/acs` (as it already does for `/oauth_callback/*` and
 `/scim/v2/*`). `3-login-flow.sh` adds the two headers to emulate an accepted
-POST; until the exemption ships, browser-based SAML logins against this build
-will be blocked at the ACS.
+POST. The exemption ships in authorizerdev/authorizer#666 — on builds that
+include it, browser-based SAML logins work without the extra headers.
 
 ## Admin API reference (verified against the GraphQL schema)
 
