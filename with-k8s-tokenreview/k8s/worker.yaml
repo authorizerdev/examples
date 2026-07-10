@@ -1,0 +1,50 @@
+# The secretless worker: no Secret objects, no client_secret env vars.
+# Its only credential is the projected ServiceAccount token below, minted and
+# rotated by the kubelet with the audience the trusted issuer expects.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: worker
+  namespace: authorizer-demo
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: authorizer-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      serviceAccountName: worker
+      containers:
+        - name: worker
+          # Build from ../app (see ../app/Dockerfile), then:
+          #   kind load docker-image authorizer-worker:local --name authorizer-demo
+          image: authorizer-worker:local
+          imagePullPolicy: Never
+          env:
+            - name: AUTHORIZER_URL
+              value: http://authorizer.authorizer-demo.svc:8080
+            - name: TOKEN_FILE
+              value: /var/run/secrets/tokens/authorizer-token
+          volumeMounts:
+            - name: authorizer-token
+              mountPath: /var/run/secrets/tokens
+              readOnly: true
+      volumes:
+        - name: authorizer-token
+          projected:
+            sources:
+              - serviceAccountToken:
+                  path: authorizer-token
+                  # MUST equal the trusted issuer's expected_aud (setup.md).
+                  audience: http://authorizer.authorizer-demo.svc:8080
+                  # ≤ Authorizer's 1-hour assertion lifetime ceiling (exp − iat).
+                  expirationSeconds: 3600

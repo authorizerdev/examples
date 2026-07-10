@@ -1,0 +1,47 @@
+# Per-org SAML 2.0 SSO demo: Authorizer (Service Provider) + Keycloak (the
+# org's corporate SAML IdP).
+#
+# NOTE: `authorizer:local` is a locally built image (make build-local-image
+# IMAGE=authorizer:local in the authorizer repo). Replace with the published
+# image (e.g. quay.io/authorizer/authorizer:<version>) once released.
+#
+# The SAML connection's idp_sso_url must be https, but ONLY the browser ever
+# visits it (Authorizer never fetches the IdP server-side in the SAML flow).
+# Front Keycloak with any https URL — a public tunnel (ngrok, cloudflared) is
+# the zero-config option — and set KC_HOSTNAME below to it. See README.md.
+services:
+  authorizer:
+    image: authorizer:local
+    ports:
+      - "8080:8080"
+    command:
+      - --database-type=sqlite
+      - --database-url=/data/authorizer.db
+      - --jwt-type=HS256
+      # Obviously-fake dev secrets — change all of these outside a local demo.
+      - --jwt-secret=dev-jwt-secret-CHANGE-ME
+      - --admin-secret=admin
+      - --client-id=00000000-demo-client-id-000000000000
+      - --client-secret=demo-client-secret-CHANGE-ME
+      - --allowed-origins=localhost:8080,localhost:8090
+    volumes:
+      - authorizer-data:/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: start-dev
+    environment:
+      # v26+ bootstrap admin (older images use KEYCLOAK_ADMIN*)
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: "8082"
+      KC_PROXY_HEADERS: xforwarded
+      # Pin Keycloak's SAML entity ID / endpoints to the https URL fronting it:
+      # KC_HOSTNAME: https://<your-tunnel>.ngrok-free.app
+    ports:
+      - "8082:8082"
+
+volumes:
+  authorizer-data:

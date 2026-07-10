@@ -1,0 +1,15 @@
+{
+  "name": "with-fga-advanced",
+  "private": true,
+  "description": "Enterprise ReBAC patterns with Authorizer's embedded fine-grained authorization",
+  "type": "module",
+  "scripts": {
+    "setup": "node setup.mjs",
+    "walkthrough": "node walkthrough.mjs",
+    "list": "node list-permissions.mjs",
+    "demo": "node setup.mjs && node walkthrough.mjs && node list-permissions.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

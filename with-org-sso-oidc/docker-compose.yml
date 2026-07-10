@@ -1,0 +1,49 @@
+# Per-org OIDC SSO demo: Authorizer (broker / Relying Party) + Keycloak (the
+# org's corporate IdP).
+#
+# NOTE: `authorizer:local` is a locally built image (make build-local-image
+# IMAGE=authorizer:local in the authorizer repo). Replace with the published
+# image (e.g. quay.io/authorizer/authorizer:<version>) once released.
+#
+# IMPORTANT — the OIDC broker hard-requires the upstream issuer_url to be an
+# https URL that does NOT resolve to a private/loopback IP (SSRF hardening,
+# no dev bypass). A plain `http://localhost:8082` Keycloak therefore CANNOT
+# back the broker. Front Keycloak with a public https tunnel (ngrok,
+# cloudflared, …) and set KC_HOSTNAME below to that URL. See README.md.
+services:
+  authorizer:
+    image: authorizer:local
+    ports:
+      - "8080:8080"
+    command:
+      - --database-type=sqlite
+      - --database-url=/data/authorizer.db
+      - --jwt-type=HS256
+      # Obviously-fake dev secrets — change all of these outside a local demo.
+      - --jwt-secret=dev-jwt-secret-CHANGE-ME
+      - --admin-secret=admin
+      - --client-id=00000000-demo-client-id-000000000000
+      - --client-secret=demo-client-secret-CHANGE-ME
+      - --allowed-origins=localhost:8080,localhost:8090
+    volumes:
+      - authorizer-data:/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    command: start-dev
+    environment:
+      # v26+ bootstrap admin (older images use KEYCLOAK_ADMIN*)
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: "8082"
+      KC_PROXY_HEADERS: xforwarded
+      # REQUIRED for the broker flow: pin Keycloak's issuer to the public
+      # https URL fronting it, e.g.:
+      # KC_HOSTNAME: https://<your-tunnel>.ngrok-free.app
+    ports:
+      - "8082:8082"
+
+volumes:
+  authorizer-data:

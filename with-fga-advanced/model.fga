@@ -1,0 +1,42 @@
+model
+  schema 1.1
+
+type user
+
+type service_account
+
+type role
+  relations
+    define assignee: [user, service_account]
+
+type organization
+  relations
+    define admin: [user]
+    define member: [user] or admin
+    define auditor: [user, service_account, role#assignee]
+
+type team
+  relations
+    define org: [organization]
+    define member: [user] or admin from org
+    define lead: [user]
+
+type project
+  relations
+    define org: [organization]
+    define team: [team]
+    define editor: [user] or lead from team
+    define viewer: [user, team#member, role#assignee] or editor or auditor from org
+    define can_view: viewer
+    define can_edit: editor
+
+type document
+  relations
+    define project: [project]
+    define owner: [user]
+    define editor: [user] or owner or editor from project
+    define viewer: [user, service_account, role#assignee] or editor or viewer from project
+    define blocked: [user]
+    define can_view: viewer but not blocked
+    define can_edit: editor but not blocked
+    define can_delete: owner

@@ -1,0 +1,132 @@
+# SPIFFE JWT-SVID → Authorizer access token, secretless.
+#
+# Images:
+#   - authorizer:local is a locally-built image from server main. Substitute
+#     the next published release (quay.io/authorizer/authorizer:<tag>) once it
+#     ships.
+#   - SPIRE 1.12.4 images are pinned; bump freely.
+#
+# Startup is two-phase because agent node-attestation needs a one-time join
+# token from the server — run ./setup.sh instead of a bare `docker compose up`.
+#
+# WARNING: the JWT keypair and admin secret on the authorizer service are the
+# repo's PUBLIC dev keys (same as `make dev`). Demo only.
+services:
+  spire-server:
+    image: ghcr.io/spiffe/spire-server:1.12.4
+    # Demo only: run as root so the named volumes (root-owned on first use) are
+    # writable and the shared API socket is readable by spire-oidc.
+    user: "0:0"
+    command: ["-config", "/etc/spire/server.conf"]
+    volumes:
+      - ./conf/server:/etc/spire:ro
+      - spire-server-data:/run/spire/data
+      # Server API socket, shared with the OIDC discovery provider.
+      - spire-server-socket:/tmp/spire-server/private
+
+  spire-oidc:
+    image: ghcr.io/spiffe/oidc-discovery-provider:1.12.4
+    user: "0:0"
+    command: ["-config", "/etc/oidc/oidc-discovery-provider.conf"]
+    depends_on:
+      - spire-server
+    volumes:
+      - ./conf/oidc:/etc/oidc:ro
+      - spire-server-socket:/tmp/spire-server/private
+    ports:
+      # JWKS at http://localhost:9988/keys — expose this publicly (tunnel) for
+      # Authorizer's SSRF-hardened fetcher; see README.
+      - "9988:8443"
+
+  spire-agent:
+    image: ghcr.io/spiffe/spire-agent:1.12.4
+    user: "0:0"
+    command: ["-config", "/etc/spire/agent.conf"]
+    depends_on:
+      - spire-server
+    pid: "host" # unix workload attestor reads peer pids on the shared socket
+    volumes:
+      - ./conf/agent:/etc/spire:ro
+      - spire-agent-data:/run/spire/data
+      - spiffe-workload-api:/spiffe-workload-api
+    # Started by setup.sh AFTER the join token is written into agent.conf.
+    profiles: ["phase2"]
+
+  authorizer:
+    image: authorizer:local
+    # Demo only: the image runs as the non-root `authorizer` user, which cannot
+    # write the root-owned named volume at /data.
+    user: "0:0"
+    ports:
+      - "8080:8080"
+    command:
+      - --database-type=sqlite
+      - --database-url=/data/authorizer.db
+      - --admin-secret=admin
+      - --client-id=kbyuFDidLLm280LIwVFiazOqjO3ty8KH
+      - --client-secret=60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa
+      - --allowed-origins=*
+      - --jwt-type=RS256
+      - |-
+        --jwt-private-key=-----BEGIN RSA PRIVATE KEY-----
+        MIIEowIBAAKCAQEA5dC50fVvQIDm66bBYW+qI+MypP9Pv9SMoHIz9cpcOj9sNhXI
+        HTllAM5dhi/+HIaJdPugVQt1rlTJVSFR+ynSmwa89RPHs0o7CBytskGaaf2RJ6zD
+        AY3TXKQQVAT3Qvb6ZOQh3+Hh8EOguqdE2iORo9s0KMk7tqS+/y4H3qrC6ngyt2QT
+        6VqWbs92N/aO0p/FaL/Q7rGZ+9hTlu3L/T70r3nyeA636kM48XUSqcjDrs4/E+Vx
+        XL2Y9Wo4kuaDmMPvMkdl6/wGOwAuIuHpmdfGh0hyLMdgpMqvFyEHuagCy+yFV6ES
+        gVi2rOp1g28iISbjpMTkNikbCBuL/TeaSdmEPwIDAQABAoIBABDpeCXmI2Ps+HwN
+        VKbNzQirZA3gsfw3xoovd/kVsA14nwcojtuZCStILyQRrRK+qH1A39l8/ecwhckW
+        KiPLE0dloAstrkut4e6PZGLn/AE3xUeqVDFtlUkjKQZzKm+1oCiY4eX0B/335BXy
+        +u34ocjxTS3Wh+aWyhgaSZROdF3vtcH0PHDroDd8oT/H0xN8fX/T1JozLN3jbxXz
+        G4KznKNmx74SrV/y6/wmmQqIsghJBNRZGbg5bn/xcExkcRhWQ3Eka8yAlu31XBQV
+        G5AtHEVO8lEi+a2PCA7t1xquw/8b48lc226aaN0pjaySNtyLB7EaKUxBDB2aGx3s
+        nVIuOsUCgYEA5xWJ67BKy6MyHphhltTLvre/AGXKDhoV3IR3Hm1cu/iXCT/oOFje
+        SYAAqqHXKEB+HZ4xKk7PnBzXkyLXqkCbEIBsv+GZpmboqZrPMfRgS6QcPWWMV9pZ
+        f1h68hWpXfyY+yEhAvPKFFhjAt0f5uMiRaAUskZJTFiRJqxz+z0AdD0CgYEA/pgq
+        Tk8WMKJBTic3m224FrR4qDok8tQp8FCerS7T5fFnSXZx64ucREn+Wm9ym5UTtbQz
+        pne4diIsNIIlVFOjOV7jHjzBS5oly2N/2AT5+ST7O4GZfh/I9VKQWuIh+i3p3s9x
+        7PSIlaql9ddV582gCMiL7/QDkHDFBVEz+vq31isCgYB2UoQFZ4ZU0OI34kSN67XL
+        mOA2/ue/4sFw4W7w6ISERxxnAw8P0wk2z1EIDchSdvtchQSdqi8Ju4bycvPE3EHJ
+        6EhG0+hN2QGm3nrbFEs+T/CZy2ZaEZaj6xVA4bCQTGe0ptj1XwkI89z2uWy9V23U
+        Asy2H+EmM29XQxQ7/5c87QKBgQCUO+i1+5pB6tb3OCJKXxHGNoHiASiuMhXRFD+v
+        OgqqYWnv/gTKTllH8YUlBqrGJ4B4VVmVXTOLpM30LKqrdJ8esj6uxlUNPc0vpNk0
+        34DkLUISHZ1PMBaDr/TY1b1OuxjmYAZHHwG/ksJaZ2xfMPwy4QGJTpwcp2wvcl4/
+        jWcoTQKBgALNq5XD/ufvZO2YQq9phF0EQza9zr45zSENF0cOsyVcEG4wfFv4Sg03
+        JjTG57oYDCWeLrFCRQpysFi1pDUUCQ1Z/Kf9xKZ/OoE1mXGCKGilBGUijQasuO5Q
+        GU+S3Xlk6TWCb2jTgc9UTjlp1FOgQSad4M6TW8vXGkSMODEj5g0S
+        -----END RSA PRIVATE KEY-----
+      - |-
+        --jwt-public-key=-----BEGIN RSA PUBLIC KEY-----
+        MIIBCgKCAQEA5dC50fVvQIDm66bBYW+qI+MypP9Pv9SMoHIz9cpcOj9sNhXIHTll
+        AM5dhi/+HIaJdPugVQt1rlTJVSFR+ynSmwa89RPHs0o7CBytskGaaf2RJ6zDAY3T
+        XKQQVAT3Qvb6ZOQh3+Hh8EOguqdE2iORo9s0KMk7tqS+/y4H3qrC6ngyt2QT6VqW
+        bs92N/aO0p/FaL/Q7rGZ+9hTlu3L/T70r3nyeA636kM48XUSqcjDrs4/E+VxXL2Y
+        9Wo4kuaDmMPvMkdl6/wGOwAuIuHpmdfGh0hyLMdgpMqvFyEHuagCy+yFV6ESgVi2
+        rOp1g28iISbjpMTkNikbCBuL/TeaSdmEPwIDAQAB
+        -----END RSA PUBLIC KEY-----
+    volumes:
+      - authorizer-data:/data
+
+  workload:
+    build: ./workload
+    depends_on:
+      - authorizer
+    environment:
+      AUTHORIZER_URL: http://authorizer:8080
+      AUDIENCE: http://authorizer:8080 # must equal the trusted issuer's expected_aud
+      SPIFFE_ENDPOINT_SOCKET: unix:///spiffe-workload-api/spire-agent.sock
+      INTERVAL: 5m
+    # Share the host pid namespace with the agent so the unix workload
+    # attestor can resolve this container's process.
+    pid: "host"
+    volumes:
+      - spiffe-workload-api:/spiffe-workload-api
+    # Started by setup.sh after agent attestation + registration entries.
+    profiles: ["phase2"]
+
+volumes:
+  spire-server-data:
+  spire-server-socket:
+  spire-agent-data:
+  spiffe-workload-api:
+  authorizer-data:

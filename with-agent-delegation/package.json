@@ -1,0 +1,11 @@
+{
+  "name": "with-agent-delegation",
+  "private": true,
+  "description": "Agent-to-agent delegation with Authorizer's RFC 8693 token exchange",
+  "scripts": {
+    "demo": "node demo.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
