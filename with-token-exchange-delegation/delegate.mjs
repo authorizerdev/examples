@@ -42,24 +42,17 @@ const oauthToken = async (params) => {
 const decode = (jwt) =>
   JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString());
 
-// --- 1. User logs in (signup on first run) --------------------------------
-const email = 'delegation-demo@example.com';
+// --- 1. User signs up (fresh email each run, so the demo is re-runnable) ---
+const email = `delegation-demo+${Date.now()}@example.com`;
 const password = 'Delegation-demo-1!';
 const scope = ['openid', 'email', 'profile', 'calendar:read', 'calendar:write'];
 
-let auth = await gql(
+const auth = await gql(
   `mutation ($params: SignUpRequest!) { signup(params: $params) { access_token } }`,
   { params: { email, password, confirm_password: password, scope } },
 );
-if (auth.errors?.length) {
-  // Already signed up — just log in.
-  auth = await gql(
-    `mutation ($params: LoginRequest!) { login(params: $params) { access_token } }`,
-    { params: { email, password, scope } },
-  );
-  if (auth.errors?.length) throw new Error(auth.errors[0].message);
-}
-const userToken = (auth.data.signup ?? auth.data.login).access_token;
+if (auth.errors?.length) throw new Error(auth.errors[0].message);
+const userToken = auth.data.signup.access_token;
 console.log('1. user token scope     :', decode(userToken).scope.join(' '));
 
 // --- 2. Agent gets its own token (client_credentials) ---------------------
