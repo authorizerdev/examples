@@ -1,0 +1,34 @@
+agent {
+    data_dir = "/run/spire/data"
+    log_level = "INFO"
+    server_address = "spire-server"
+    server_port = "8081"
+    trust_domain = "demo.example"
+    socket_path = "/spiffe-workload-api/spire-agent.sock"
+
+    # Demo only: skip server-cert bootstrap verification (compose network).
+    insecure_bootstrap = true
+
+    # One-time node-attestation token; setup.sh substitutes it while rendering
+    # this template to agent.conf.
+    join_token = "__JOIN_TOKEN__"
+}
+
+plugins {
+    NodeAttestor "join_token" {
+        plugin_data {}
+    }
+
+    KeyManager "disk" {
+        plugin_data {
+            directory = "/run/spire/data"
+        }
+    }
+
+    # Workload attestation via unix peer credentials on the shared socket.
+    # The workload container runs as uid 0 (distroless default) — matched by
+    # the registration entry's unix:uid:0 selector in setup.sh.
+    WorkloadAttestor "unix" {
+        plugin_data {}
+    }
+}

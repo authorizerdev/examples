@@ -1,0 +1,25 @@
+# RBAC for Authorizer's Kubernetes TokenReview calls.
+#
+# system:auth-delegator grants create on tokenreviews.authentication.k8s.io —
+# the standard role for services that verify other workloads' tokens online.
+# Authorizer authenticates the TokenReview POST with its own in-cluster
+# ServiceAccount token (mounted at the default path), so the binding targets
+# the `authorizer` ServiceAccount the Deployment runs as.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: authorizer
+  namespace: authorizer-demo
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: authorizer-tokenreview
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:auth-delegator
+subjects:
+  - kind: ServiceAccount
+    name: authorizer
+    namespace: authorizer-demo
