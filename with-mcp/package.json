@@ -1,0 +1,16 @@
+{
+  "name": "with-mcp",
+  "version": "1.0.0",
+  "description": "MCP server protected by Authorizer (OAuth 2.1 + RFC 9728 + RFC 8707 via RFC 8693 token exchange)",
+  "type": "module",
+  "scripts": {
+    "start": "node mcp-server.mjs",
+    "client": "node client.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "express": "^4.21.0",
+    "jose": "^5.9.0",
+    "zod": "^3.24.0"
+  }
+}

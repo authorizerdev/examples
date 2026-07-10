@@ -1,0 +1,9 @@
+{
+  "name": "with-auth-recipes",
+  "private": true,
+  "type": "module",
+  "description": "Runnable Authorizer end-user auth recipes: magic link, TOTP MFA, webhooks, email templates",
+  "dependencies": {
+    "otpauth": "9.5.1"
+  }
+}
