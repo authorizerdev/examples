@@ -14,6 +14,11 @@
 - Install dependencies `npm i`
 - Start locally `npm start`
 
+> **Note:** This example uses Gatsby 4, whose native dependencies (`lmdb-store`) do not compile on Node.js 20+. Use Node.js 16–18 to run it.
+
+> Authorizer v2 server is configured entirely via CLI flags (no `.env` / OS env vars), e.g.
+> `./authorizer --database-type sqlite --database-url authorizer.db --admin-secret <secret>`
+
 # Using Authorizer with Gatsby
 
 ## Step 1: Get Authorizer Instance
@@ -58,6 +63,12 @@ OR
 
 ```sh
 yarn add @authorizerdev/authorizer-react
+```
+
+Then import the SDK stylesheet once, e.g. in `gatsby-browser.js`:
+
+```js
+require('@authorizerdev/authorizer-react/styles.css');
 ```
 
 ## Step 4: Create Root Layout
@@ -107,6 +118,8 @@ export default function Layout({ children }) {
 Add root layout in gatsby browser config. Create `gatsby-browser.js` in the root of project with following content
 
 ```jsx
+require('@authorizerdev/authorizer-react/styles.css');
+
 const React = require('react');
 const Layout = require('./src/components/layout').default;
 

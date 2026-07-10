@@ -7,7 +7,9 @@
   <div class="component-warpper">
     <AuthorizerProvider
       config={{
-        authorizerURL: 'http://localhost:8080'
+        authorizerURL: 'http://localhost:8080',
+        redirectURL: window.location.origin,
+        clientID: 'YOUR_CLIENT_ID'
       }}
       onStateChangeCallback={async state => {
         console.log('state change from client ==>> ', state)

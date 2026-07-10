@@ -5,16 +5,16 @@
   "keywords": [],
   "main": "src/index.js",
   "dependencies": {
-    "@authorizerdev/authorizer-react": "1.2.0",
+    "@authorizerdev/authorizer-react": "^2.0.7",
     "history": "5.1.0",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
     "react-router-dom": "6.0.2",
     "react-scripts": "5.0.1"
   },
   "devDependencies": {
     "@babel/runtime": "7.13.8",
-    "typescript": "5.3.3"
+    "typescript": "^4.9.5"
   },
   "scripts": {
     "start": "react-scripts start",

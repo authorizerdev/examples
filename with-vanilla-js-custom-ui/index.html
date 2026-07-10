@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="/style.css" />
     <title>Authorizer With Vanilla JS App</title>
   </head>
   <body>
@@ -39,7 +39,7 @@
         mollit anim id est laborum.
       </p>
     </div>
-    <script src="https://unpkg.com/@authorizerdev/authorizer-js/lib/authorizer.min.js"></script>
+    <script src="https://unpkg.com/@authorizerdev/authorizer-js@3.2.1/lib/authorizer.min.js"></script>
     <script type="module">
       const authorizerRef = new authorizerdev.Authorizer({
         authorizerURL: `https://demo.authorizer.dev`,
@@ -55,16 +55,16 @@
       });
 
       async function onload() {
-        try {
-          const { data: session, errors } = await authorizerRef.getSession();
-          console.log({ session });
-          const userSection = document.getElementById('user');
-          const logoutSection = document.getElementById('logout-section');
-          logoutSection.classList.toggle('hide');
-          userSection.innerHTML = `Welcome, ${session.user.email}`;
-        } catch (err) {
+        const { data: session, errors } = await authorizerRef.getSession();
+        if (errors.length || !session) {
           window.location.replace('/login.html');
+          return;
         }
+        console.log({ session });
+        const userSection = document.getElementById('user');
+        const logoutSection = document.getElementById('logout-section');
+        logoutSection.classList.toggle('hide');
+        userSection.innerHTML = `Welcome, ${session.user.email}`;
       }
 
       onload();
