@@ -10,9 +10,9 @@ identity layer.
 ┌──────────┐  1. GET /.well-known/          ┌─────────────────┐
 │          │     agent-card.json            │                 │
 │  A2A      │ ─────────────────────────────► │  A2A agent      │
-│  client   │ ◄── securitySchemes.oauth2.    │  (this example) │
-│  (agent)  │     flows.clientCredentials.   │  :4002          │
-│           │     tokenUrl                   │                 │
+│  client   │ ◄── securitySchemes[].          │  (this example) │
+│  (agent)  │     oauth2SecurityScheme.flows. │  :4002          │
+│           │     clientCredentials.tokenUrl  │                 │
 │           │                                 └────────┬────────┘
 │           │  2. token request                        │ validates JWT:
 │           │     (client_credentials)                  │ JWKS + issuer
@@ -39,16 +39,16 @@ current A2A specification does not prescribe a standard API" for them.
 
 | Concern | A2A's answer | Who implements it here |
 |---|---|---|
-| Agent identity (auth) | `securitySchemes` = the OpenAPI 3.x Security Scheme Object (`oauth2`, `http` bearer, `apiKey`, `openIdConnect`, `mtls`) | **Authorizer** (`/oauth/token`, JWKS, OIDC discovery) |
+| Agent identity (auth) | `securitySchemes` = A2A `SecurityScheme`, a `oneof` whose kind is the JSON key (`oauth2SecurityScheme`, `httpAuthSecurityScheme`, `apiKeySecurityScheme`, `openIdConnectSecurityScheme`, `mtlsSecurityScheme`) — modeled on OpenAPI 3.x but not the literal `{"type":...}` shape | **Authorizer** (`/oauth/token`, JWKS, OIDC discovery) |
 | Card discovery | `GET /.well-known/agent-card.json` on the agent's own domain (the **current** v1.0 path — some older SDKs/drafts still use `/.well-known/agent.json`, which is legacy) | **the agent** (`server.mjs`) |
-| Card registry | Explicitly undefined by the spec; no vendor (Auth0, Okta, WorkOS, Clerk, Keycloak) hosts one either | **nobody** — deliberately out of scope, see below |
+| Card registry | Explicitly undefined by the spec — cards are self-hosted at the well-known path; the spec prescribes no standard registry API | **nobody** — deliberately out of scope, see below |
 | Server auth (§7.4) | The A2A server "MUST authenticate the request using one of the schemes declared" in its own card | **the agent** (`server.mjs`'s bearer check) |
 | Card signing (§8.4) | **Optional**, uses the agent's own signing key — independent of the OAuth2 scheme in `securitySchemes` | **nobody** in this example; Authorizer/JWKS has no role in card signing |
 
 **Authorizer's job is narrow and already done**: be the AS a card's
-`securitySchemes.oauth2.tokenUrl` points at. It does not host cards, does not
-run a registry, and does not sign cards — none of those are asked for by the
-spec, and no competing identity platform builds them either.
+`securitySchemes[].oauth2SecurityScheme` points at. It does not host cards,
+does not run a registry, and does not sign cards — none of those are asked for
+by the spec.
 
 For a **delegated** call — an agent acting on behalf of a specific user,
 rather than authenticating as itself — mint the bearer with RFC 8693 token
@@ -64,17 +64,20 @@ OIDC discovery, nothing hardcoded) — shape:
 
 ```json
 {
-  "protocolVersion": "1.0.0",
   "name": "authorizer-demo-agent",
-  "url": "http://localhost:4002",
-  "skills": [{ "id": "echo", "name": "Echo" }],
+  "version": "1.0.0",
+  "supportedInterfaces": [
+    { "url": "http://localhost:4002/a2a", "protocolBinding": "JSONRPC", "protocolVersion": "1.0" }
+  ],
+  "skills": [{ "id": "echo", "name": "Echo", "tags": ["demo", "echo"] }],
   "securitySchemes": {
     "authorizer_m2m": {
-      "type": "oauth2",
-      "flows": {
-        "clientCredentials": {
-          "tokenUrl": "http://localhost:8080/oauth/token",
-          "scopes": { "openid": "OpenID Connect identity" }
+      "oauth2SecurityScheme": {
+        "flows": {
+          "clientCredentials": {
+            "tokenUrl": "http://localhost:8080/oauth/token",
+            "scopes": { "openid": "OpenID Connect identity" }
+          }
         }
       }
     }
@@ -82,6 +85,12 @@ OIDC discovery, nothing hardcoded) — shape:
   "security": [{ "authorizer_m2m": ["openid"] }]
 }
 ```
+
+The endpoint URL and protocol version live in `supportedInterfaces[]`
+(v1.0 removed the 0.x top-level `url`/`protocolVersion` card fields). The wire
+call is JSON-RPC 2.0 `SendMessage` whose `params.message` is a `Message`
+(`messageId` + `role: "ROLE_USER"` + `parts`); the echo replies with a
+`Message` (`role: "ROLE_AGENT"`).
 
 ## Run it
 
