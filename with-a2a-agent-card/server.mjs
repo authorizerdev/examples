@@ -141,17 +141,20 @@ app.post("/a2a", requireBearer, (req, res) => {
     });
   }
   const text = incoming.parts.map((p) => p.text).filter(Boolean).join(" ");
-  // A SendMessage result is a Task or a Message; a stateless echo returns a
-  // Message directly (spec §3.1.1, "a direct response message"). Demo-only
-  // identity fields ride along in the Message's optional metadata.
+  // Spec §9.4.1 (verbatim): "result" is a SendMessageResponse that wraps ONE
+  // of "task" or "message" — never a raw Message under "result" directly. A
+  // stateless echo returns the "message" branch. Demo-only identity fields
+  // ride along in the Message's optional metadata.
   res.json({
     jsonrpc: "2.0",
     id,
     result: {
-      messageId: randomUUID(),
-      role: "ROLE_AGENT",
-      parts: [{ text }],
-      metadata: { authenticatedAs: req.claims.sub, scope: req.claims.scope },
+      message: {
+        messageId: randomUUID(),
+        role: "ROLE_AGENT",
+        parts: [{ text }],
+        metadata: { authenticatedAs: req.claims.sub, scope: req.claims.scope },
+      },
     },
   });
 });
