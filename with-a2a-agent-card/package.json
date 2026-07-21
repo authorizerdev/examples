@@ -1,0 +1,14 @@
+{
+  "name": "with-a2a-agent-card",
+  "version": "1.0.0",
+  "description": "A2A (Agent2Agent) v1.0 Agent Card served by an agent that authenticates callers against Authorizer as an ordinary OAuth2 resource server",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "client": "node client.mjs"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "jose": "^5.9.0"
+  }
+}

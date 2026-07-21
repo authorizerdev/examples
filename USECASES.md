@@ -9,6 +9,9 @@ Beyond the framework quickstarts (`with-react`, `with-nextjs`, `with-vue`, `with
 | [`with-m2m-client-credentials`](./with-m2m-client-credentials) | A background worker authenticating as itself: register a service account (`_create_client`), then the OAuth2 `client_credentials` grant with scope ceilings |
 | [`with-token-exchange-delegation`](./with-token-exchange-delegation) | RFC 8693 token exchange: an agent acts on behalf of a user with a short-lived, down-scoped, resource-bound token carrying the `act` claim |
 | [`with-agent-delegation`](./with-agent-delegation) | Multi-hop AI-agent delegation chains built on token exchange |
+| [`with-mcp`](./with-mcp) | MCP server protected by Authorizer as an OAuth 2.1 AS: RFC 9728 protected-resource metadata, RFC 8707 resource-bound tokens |
+| [`with-a2a-agent-card`](./with-a2a-agent-card) | An A2A v1.0 Agent Card whose `securitySchemes.oauth2` points at Authorizer, authenticated as an ordinary OAuth2 resource server |
+| [`with-claude-agents`](./with-claude-agents) | Two independent Claude Agent SDK agents delegating over real HTTP, gated by a fail-closed OpenFGA `can_deploy` check keyed to the user, not the agent |
 | [`with-k8s-tokenreview`](./with-k8s-tokenreview) | Kubernetes workloads authenticating with service-account tokens (RFC 7523 `client_assertion`, TokenReview) |
 | [`with-spiffe`](./with-spiffe) | SPIFFE/SPIRE workload identity as the client credential |
 
