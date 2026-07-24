@@ -35,8 +35,8 @@ from authorizer import (
     FgaTupleInput,
     FgaWriteModelRequest,
     FgaWriteTuplesRequest,
+    ListUsersRequest,
     LoginRequest,
-    PaginatedRequest,
     PaginationRequest,
     SignUpRequest,
 )
@@ -110,7 +110,7 @@ def ensure_user(
             client.login(LoginRequest(email=email, password=DEMO_PASSWORD))
         except AuthorizerError:
             raise SystemExit(f"signup failed for {email}: {signup_error}") from None
-    users = admin.users(PaginatedRequest(pagination=PaginationRequest(limit=100)))
+    users = admin.users(ListUsersRequest(pagination=PaginationRequest(limit=100)))
     for user in users.users:
         if user.email == email:
             print(f"  user {email} already exists")

@@ -20,7 +20,7 @@ import (
 	"strings"
 	"time"
 
-	authorizer "github.com/authorizerdev/authorizer-go"
+	authorizer "github.com/authorizerdev/authorizer-go/v2"
 	"github.com/golang-jwt/jwt/v4"
 )
 

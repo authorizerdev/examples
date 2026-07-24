@@ -3,12 +3,13 @@ module github.com/authorizerdev/examples/with-k8s-tokenreview/app
 go 1.25.5
 
 require (
-	github.com/authorizerdev/authorizer-go v0.0.0
+	github.com/authorizerdev/authorizer-go/v2 v2.2.0-rc.4
 	github.com/golang-jwt/jwt/v4 v4.5.2
 )
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1 // indirect
+	github.com/authorizerdev/authorizer-proto-go v0.1.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
@@ -17,9 +18,3 @@ require (
 	google.golang.org/grpc v1.81.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
-
-// The client_assertion fields (GetTokenRequest.ClientAssertion /
-// ClientAssertionType, GrantTypeClientCredentials) are on authorizer-go main
-// but not yet in a tagged release. Drop this replace (and pin the next
-// released tag) once it ships.
-replace github.com/authorizerdev/authorizer-go => ../../../authorizer-go

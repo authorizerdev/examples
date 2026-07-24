@@ -21,13 +21,12 @@ upstream hop dropped (`invalid_scope`), and delegated tokens live 5 minutes.
 ## Quickstart
 
 Requires a server built from main (`make dev` in the server repo → :8080)
-and the **unreleased** Python SDK from local main (token-exchange support
-merged, not yet on PyPI — switch to `pip install authorizer-py` at the next
-release):
+and the Authorizer Python SDK (token-exchange support ships in
+`authorizer-py>=0.3.0rc3`):
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e ../../../authorizer-python
+.venv/bin/pip install -r requirements.txt
 
 export AUTHORIZER_CLIENT_ID=kbyuFDidLLm280LIwVFiazOqjO3ty8KH   # make-dev default
 export AUTHORIZER_ADMIN_SECRET=admin

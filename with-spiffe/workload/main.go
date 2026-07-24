@@ -16,7 +16,7 @@ import (
 	"os"
 	"time"
 
-	authorizer "github.com/authorizerdev/authorizer-go"
+	authorizer "github.com/authorizerdev/authorizer-go/v2"
 	"github.com/spiffe/go-spiffe/v2/svid/jwtsvid"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 )

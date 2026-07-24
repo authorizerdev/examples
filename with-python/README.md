@@ -1,6 +1,6 @@
 # Authorizer Example with Python
 
-Signup, login and profile with the [Python SDK](https://github.com/authorizerdev/authorizer-python) (`authorizer-py` 0.2.0) sync client, plus the admin client listing users.
+Signup, login and profile with the [Python SDK](https://github.com/authorizerdev/authorizer-python) (`authorizer-py` 0.3.0rc3) sync client, plus the admin client listing users.
 
 ## Run an Authorizer instance
 

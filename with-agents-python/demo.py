@@ -9,11 +9,10 @@ nested `act` (actor) claim while the scope can only narrow.
     python demo.py --async    # same flow on the async client
 
 Requires an Authorizer server built from main (`make dev` in the server
-repo) and the UNRELEASED Python SDK from local main:
+repo) and the Authorizer Python SDK (token exchange ships in
+`authorizer-py>=0.3.0rc3`):
 
-    pip install -e ../../../authorizer-python
-
-(Advice: switch to `pip install authorizer-py` once the next release ships.)
+    pip install -r requirements.txt
 """
 
 from __future__ import annotations

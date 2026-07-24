@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	authorizer "github.com/authorizerdev/authorizer-go"
+	authorizer "github.com/authorizerdev/authorizer-go/v2"
 )
 
 func env(key, fallback string) string {
