@@ -35,5 +35,8 @@ for prefix, (name, scopes) in AGENTS.items():
             description="with-agents-python demo agent (safe to delete)",
         )
     )
-    print(f"export {prefix}_CLIENT_ID={res.client.id}")
+    # client_id is the public OAuth identifier the token endpoint expects; id
+    # is the internal surrogate key. They coincide for admin-created clients,
+    # but not in general, so use the one that is actually being asked for.
+    print(f"export {prefix}_CLIENT_ID={res.client.client_id}")
     print(f"export {prefix}_CLIENT_SECRET={res.client_secret}")

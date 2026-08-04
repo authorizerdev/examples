@@ -21,13 +21,17 @@ upstream hop dropped (`invalid_scope`), and delegated tokens live 5 minutes.
 ## Quickstart
 
 Requires a server built from main (`make dev` in the server repo → :8080)
-and the **unreleased** Python SDK from local main (token-exchange support
-merged, not yet on PyPI — switch to `pip install authorizer-py` at the next
-release):
+and the **unreleased** Python SDK from local main, checked out next to this
+repo. `authorizer-py` 0.3.0rc3 is on PyPI and does have token exchange and
+`skip_mfa_setup`, but not the loopback cookie jar that the MFA offer needs:
+the server marks the `mfa_session` cookie `Secure` even over plain http, so
+against a local server the released SDK drops it and `skip_mfa_setup` fails
+with `invalid session`. Switch to `pip install --pre authorizer-py` once
+that fix ships:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e ../../../authorizer-python
+.venv/bin/pip install -e ../../authorizer-python
 
 export AUTHORIZER_CLIENT_ID=kbyuFDidLLm280LIwVFiazOqjO3ty8KH   # make-dev default
 export AUTHORIZER_ADMIN_SECRET=admin
@@ -56,6 +60,10 @@ export AUTHORIZER_ADMIN_SECRET=admin
 - `GetTokenRequest` carries all RFC 8693 params (`subject_token`,
   `actor_token`, `resource`, plus `client_secret` for the exchange auth)
 - The async client (`AsyncAuthorizerClient`) mirrors the sync API 1:1
-- Known parity gap: the SDK's `Client` type doesn't expose `client_id` yet
-  (server added it in authorizer#664); `setup.py` uses `client.id`, which
-  equals `client_id` for admin-created clients
+- The SDK's `Client` type now exposes `client_id` (the public OAuth
+  identifier) alongside `id` (the internal surrogate key), so `setup.py`
+  prints `client.client_id`. The two coincide for admin-created clients but
+  not in general — the reserved interactive client is one where they differ
+- Signup returns no access token on a default install: MFA is on since
+  2.4.0, so both flows decline the offer with `skip_mfa_setup` and then log
+  in again to get a token carrying the demo's `crm:*` scopes
