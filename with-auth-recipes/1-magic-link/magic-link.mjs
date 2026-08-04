@@ -6,6 +6,7 @@
 import {
   gql,
   clearMailbox,
+  cookieHeader,
   waitForEmail,
   extractVerificationToken,
   randomEmail,
@@ -33,19 +34,41 @@ console.log('token (first 40 chars):', token.slice(0, 40), '...');
 
 // 3. Exchange the token for a session. (Clicking the link in the email does
 // the same thing via GET /verify_email, then redirects to redirect_uri.)
-const { data: verified } = await gql(
+const sessionFields = `
+  message
+  access_token
+  expires_in
+  user { id email signup_methods email_verified }
+`;
+
+const { data: verified, setCookies } = await gql(
   `mutation ($params: VerifyEmailRequest!) {
-    verify_email(params: $params) {
-      message
-      access_token
-      expires_in
-      user { id email signup_methods email_verified }
-    }
+    verify_email(params: $params) { ${sessionFields} }
   }`,
   { params: { token } }
 );
-const auth = verified.verify_email;
+let auth = verified.verify_email;
 console.log('verify_email:', auth.message);
+
+// Since 2.4.0 MFA is on by default, so verify_email enrols nothing but OFFERS
+// an MFA setup: it returns no access token and the message "Proceed to mfa
+// setup" until the user either enrols a factor or explicitly declines. This
+// recipe declines, which is what skip_mfa_setup is for -- it records the
+// refusal and releases the withheld token. The call is identified by the MFA
+// session cookie the response above just set, plus the email. Under
+// --enforce-mfa declining is refused and the user must enrol instead; see
+// 2-totp-mfa for that path.
+if (!auth.access_token) {
+  const { data: skipped } = await gql(
+    `mutation ($params: SkipMfaSetupRequest!) {
+      skip_mfa_setup(params: $params) { ${sessionFields} }
+    }`,
+    { params: { email } },
+    { Cookie: cookieHeader(setCookies) }
+  );
+  auth = skipped.skip_mfa_setup;
+  console.log('skip_mfa_setup:', auth.message);
+}
 console.log('user:', auth.user);
 
 // 4. Prove the session: authenticated profile query.

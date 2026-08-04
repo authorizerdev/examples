@@ -45,11 +45,15 @@ If the server runs on a non-default port, point the scripts at it:
 --smtp-host=localhost --smtp-port=1025 --smtp-sender-email=...  # Mailpit
 --enable-email-verification                                     # emails on signup
 --enable-magic-link-login                                       # recipe 1, 4
---enable-mfa --enable-totp-login --enforce-mfa=false            # recipe 2
+--enforce-mfa=false                                             # recipe 2
 ```
 
-`--enforce-mfa=false` matters: it defaults to `true`, which would force TOTP
-onto every user and entangle the other recipes.
+Since 2.4.0 MFA and TOTP are on by default, so the `--enable-mfa` and
+`--enable-totp-login` flags this script used to pass no longer exist — the
+opt-outs are `--disable-mfa` / `--disable-totp-login`. `--enforce-mfa=false`
+is now also the default; it stays spelled out because recipe 2 depends on
+enrollment being *offered* rather than *forced*, and enforcing it would
+entangle the other recipes.
 
 All secrets in `run-server.sh` (admin secret `admin`, client id/secret, JWT
 secret) are throwaway dev values — never reuse them.
