@@ -15,7 +15,7 @@ import (
 	"os"
 	"time"
 
-	authorizer "github.com/authorizerdev/authorizer-go"
+	authorizer "github.com/authorizerdev/authorizer-go/v2"
 )
 
 func env(key, fallback string) string {
@@ -59,6 +59,27 @@ func main() {
 	if err != nil {
 		log.Fatal("login: ", err)
 	}
+
+	// Since 2.4.0 MFA is ON by default, so a brand-new user is OFFERED an MFA
+	// setup and the access token is WITHHELD until they either enrol a factor
+	// or explicitly decline. Login therefore returns no token here — it
+	// returns "Proceed to mfa setup" — and dereferencing the token straight
+	// away panics.
+	//
+	// This example declines, which is what SkipMfaSetup is for: it records the
+	// refusal and releases the withheld token. Identification is by the MFA
+	// session cookie set above plus the email, so it must run on the same
+	// client. Fails if the instance runs with --enforce-mfa, where declining
+	// is not permitted; a real app would drive the TOTP/OTP setup screen
+	// instead.
+	if login.AccessToken == nil {
+		fmt.Println("mfa setup offered:", refString(login.Message))
+		login, err = client.SkipMfaSetup(&authorizer.SkipMfaSetupRequest{Email: &email})
+		if err != nil {
+			log.Fatal("skip mfa setup: ", err)
+		}
+		fmt.Println("mfa setup declined, token issued")
+	}
 	fmt.Println("logged in, token expires in:", *login.ExpiresIn, "seconds")
 
 	// Profile: authenticated with the user's own bearer token.
@@ -83,4 +104,12 @@ func main() {
 	for _, u := range users.GetUsers() {
 		fmt.Println("  -", u.GetEmail())
 	}
+}
+
+// refString safely reads an optional string field.
+func refString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
