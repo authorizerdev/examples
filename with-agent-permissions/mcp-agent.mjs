@@ -283,7 +283,24 @@ console.log(`  user  ${userId}  -> can view q4-plan AND payroll`);
 console.log(`  agent ${agent.client_id}  -> trusted with q4-plan ONLY`);
 console.log(`  documents: ${DOC_PLAN}, ${DOC_PAYROLL}`);
 
-if (!process.argv.includes("--verify")) {
+// --emit-config <path>: write an MCP client config (the shape `claude
+// --mcp-config` and Claude Desktop both accept) plus the document ids, so a
+// REAL model can be pointed at this with no copy-paste.
+if (process.argv.includes("--emit-config")) {
+  const out = process.argv[process.argv.indexOf("--emit-config") + 1];
+  if (!out) throw new Error("--emit-config needs a path");
+  const { writeFileSync } = await import("node:fs");
+  writeFileSync(
+    out,
+    JSON.stringify(
+      { mcpServers: { "authorizer-agent": { command: BIN_PATH, args: mcpArgs(delegated) } } },
+      null,
+      2
+    )
+  );
+  console.log(`\nWrote MCP config to ${out}`);
+  console.log(JSON.stringify({ docPlan: DOC_PLAN, docPayroll: DOC_PAYROLL, userId, agentClientId: agent.client_id }));
+} else if (!process.argv.includes("--verify")) {
   console.log(`\n== Register the agent's MCP server with Claude Code ==\n`);
   console.log(`claude mcp add authorizer-agent -- \\`);
   console.log(`  ${BIN_PATH} ${mcpArgs(delegated).join(" \\\n  ")}\n`);

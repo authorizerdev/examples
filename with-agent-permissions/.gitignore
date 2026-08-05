@@ -1,3 +1,4 @@
+.env
 .agent-demo.db
 .agent-demo.db-wal
 .agent-demo.db-shm
