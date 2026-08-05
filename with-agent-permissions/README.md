@@ -143,6 +143,71 @@ That binding is the point, not an obstacle.
   (`app → agent → sub-agent`) the check is `perms(sub-agent) ∩ perms(user)`;
   prior hops are recorded for audit but never grant or deny.
 
+## Test it with a REAL AI agent
+
+`demo.mjs` proves the rule with plain HTTP calls — the "agent" is a script.
+To put an actual model behind it, use Authorizer's **built-in MCP server**: give
+it a delegated token as its bearer and register it with any MCP host (Claude
+Code, Claude Desktop, Cursor).
+
+```sh
+# 1. Start the server (HS256 + a local sqlite file, so the MCP flags stay short)
+./run-server.sh
+
+# 2. Mint a delegated token and print the registration command
+node mcp-agent.mjs
+```
+
+That prints a ready-to-paste `claude mcp add …` command. Register it, then ask
+the agent in plain language:
+
+> "Can you view `document:q4-plan-…`?" → the tool answers **allowed**
+> "Can you view `document:payroll-…`?" → the tool answers **denied**
+
+The second one is the whole point. The delegating user **can** read payroll. The
+agent was never granted it, so the agent cannot — no matter how the question is
+phrased, because the decision is made server-side from the token, not from the
+conversation. Prompt injection has nothing to work with.
+
+### Prove it without a model in the loop
+
+```sh
+node mcp-agent.mjs --verify
+```
+
+This spawns the real `authorizer mcp` process and speaks the same JSON-RPC an
+MCP host speaks, asserting the intersection holds through the tool surface —
+then repeats the identical calls with the **user's own** token as a control:
+
+```
+== Driving the real MCP server over stdio (delegated token) ==
+  ✓ check_permissions q4-plan -> allowed
+  ✓ check_permissions payroll -> DENIED
+  ✓ list_permissions includes q4-plan
+  ✓ list_permissions EXCLUDES payroll
+
+== Control: the same tools with the USER's own token ==
+  ✓ check_permissions q4-plan -> allowed
+  ✓ check_permissions payroll -> allowed (the user CAN see it)
+```
+
+Same user, same tuples, same tools. The only difference is that the agent is in
+the loop — and payroll went from allowed to denied.
+
+### Things that will bite you
+
+- **`authorizer mcp` is a separate process.** It opens the database directly and
+  validates the bearer itself, so it needs the *same* `--database-*`, `--jwt-*`
+  and `--encryption-key` flags as the server that minted the token. Point it at
+  a different database or a different JWT secret and every tool call returns
+  `Unauthenticated` — which looks like a permissions bug and is not one.
+- **A delegated token lives 5 minutes.** Re-run `mcp-agent.mjs` to mint a fresh
+  one. Don't spend that budget compiling: build the binary once
+  (`go build -o .agent-demo-bin .`) rather than using `go run` per spawn.
+- **Check what is actually listening on :8080.** A stray `make dev` from another
+  terminal will answer health checks while `run-server.sh` silently fails to
+  bind, and you will be testing a different deployment than you think.
+
 ## Related
 
 - [`with-agent-delegation`](../with-agent-delegation) — how the delegated token
