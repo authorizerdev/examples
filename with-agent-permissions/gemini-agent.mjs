@@ -209,6 +209,36 @@ const TOOL_PARAMS = {
   required: ["objects"],
 };
 
+// Free tiers are small (Gemini's is 5 requests/minute), and this script makes
+// three model calls per run. A rate limit is an expected operating condition
+// here, not a bug — surface it as one, and retry once when the provider tells
+// us how long to wait.
+async function postWithBackoff(url, init, provider) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(url, init);
+    const body = await res.json();
+    const err = body.error;
+    if (!err) return body;
+    const msg = err.message ?? JSON.stringify(err);
+    const rateLimited = res.status === 429 || /quota|rate.?limit/i.test(msg);
+    if (rateLimited && attempt === 0) {
+      const secs = Math.min(65, Math.ceil(Number(/retry in ([\d.]+)s/i.exec(msg)?.[1] ?? 30)) + 2);
+      console.log(`  (${provider} rate limit — waiting ${secs}s and retrying once)`);
+      await new Promise((r) => setTimeout(r, secs * 1000));
+      continue;
+    }
+    if (rateLimited) {
+      console.error(
+        `\n${provider} rate limit reached: ${msg}\n` +
+          `This is a quota problem, not an authorization one. Wait a minute and re-run,\n` +
+          `or set a model with more headroom in .env.`
+      );
+      process.exit(3);
+    }
+    throw new Error(`${provider}: ${msg}`);
+  }
+}
+
 // Native Google AI Studio function-calling loop.
 async function runGemini(prompt, token, toolCalls) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_KEY}`;
@@ -218,13 +248,15 @@ async function runGemini(prompt, token, toolCalls) {
   ];
 
   for (let turn = 0; turn < 5; turn++) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ contents, tools }),
-    });
-    const body = await res.json();
-    if (body.error) throw new Error(`gemini: ${body.error.message}`);
+    const body = await postWithBackoff(
+      url,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents, tools }),
+      },
+      "Gemini"
+    );
     const parts = body.candidates?.[0]?.content?.parts ?? [];
     const call = parts.find((p) => p.functionCall)?.functionCall;
     if (!call) return parts.map((p) => p.text).filter(Boolean).join("");
@@ -248,13 +280,15 @@ async function runOpenRouter(prompt, token, toolCalls) {
   ];
 
   for (let turn = 0; turn < 5; turn++) {
-    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENROUTER_KEY}` },
-      body: JSON.stringify({ model: OPENROUTER_MODEL, messages, tools }),
-    });
-    const body = await res.json();
-    if (body.error) throw new Error(`openrouter: ${body.error.message ?? JSON.stringify(body.error)}`);
+    const body = await postWithBackoff(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENROUTER_KEY}` },
+        body: JSON.stringify({ model: OPENROUTER_MODEL, messages, tools }),
+      },
+      "OpenRouter"
+    );
     const msg = body.choices?.[0]?.message;
     if (!msg) throw new Error(`openrouter: no choice in ${JSON.stringify(body).slice(0, 300)}`);
     if (!msg.tool_calls?.length) return msg.content ?? "";
@@ -276,15 +310,27 @@ const runAgent = (prompt, token, toolCalls) =>
 // ------------------------------------------------------------------- main --
 
 let failures = 0;
-const expect = (label, actual, wanted) => {
-  const ok = JSON.stringify(actual) === JSON.stringify(wanted);
-  if (!ok) failures++;
-  console.log(`  ${ok ? "✓" : "✗"} ${label}${ok ? "" : `  (got ${JSON.stringify(actual)}, want ${JSON.stringify(wanted)})`}`);
-};
 
-// Collapse every tool call the model made into object -> allowed.
+// Every decision the server returned for `object`, across however many tool
+// calls the model chose to make.
 const decisionsFor = (toolCalls, object) =>
   toolCalls.flatMap((c) => c.results).filter((r) => r.object === object).map((r) => r.allowed);
+
+// Asserts the SERVER's answer, not the model's prose, and not how many times
+// the model decided to ask.
+//
+// Deliberately not an equality check against a fixed array: how many tool calls
+// a model makes is its own business — it may batch both documents into one call
+// or check each separately, and that varies run to run. What must hold is that
+// it asked at least once and that every answer came back the same. An earlier
+// version compared against [true] and failed intermittently for no reason other
+// than the model choosing to call the tool twice.
+const expectAll = (label, decisions, wanted) => {
+  const ok = decisions.length > 0 && decisions.every((d) => d === wanted);
+  if (!ok) failures++;
+  const why = decisions.length === 0 ? "the model never called the tool" : JSON.stringify(decisions);
+  console.log(`  ${ok ? "✓" : "✗"} ${label}${ok ? "" : `  (got ${why}, want every decision to be ${wanted})`}`);
+};
 
 const { delegated, userToken, agent, userId } = await setup();
 const provider = GEMINI_KEY ? `Gemini (${GEMINI_MODEL})` : `OpenRouter (${OPENROUTER_MODEL})`;
@@ -306,15 +352,15 @@ const agentCalls = [];
 const agentReply = await runAgent(PROMPT, delegated, agentCalls);
 console.log(`  model said: ${agentReply.replace(/\s+/g, " ").trim().slice(0, 200)}`);
 console.log(`  tool calls: ${agentCalls.length}`);
-expect(`server allowed q4-plan for the agent`, decisionsFor(agentCalls, DOC_PLAN), [true]);
-expect(`server DENIED payroll for the agent`, decisionsFor(agentCalls, DOC_PAYROLL), [false]);
+expectAll(`server allowed q4-plan for the agent`, decisionsFor(agentCalls, DOC_PLAN), true);
+expectAll(`server DENIED payroll for the agent`, decisionsFor(agentCalls, DOC_PAYROLL), false);
 
 console.log(`\n== Control: same model, same prompt, the USER's own token ==`);
 const userCalls = [];
 const userReply = await runAgent(PROMPT, userToken, userCalls);
 console.log(`  model said: ${userReply.replace(/\s+/g, " ").trim().slice(0, 200)}`);
-expect(`server allowed q4-plan for the user`, decisionsFor(userCalls, DOC_PLAN), [true]);
-expect(`server allowed payroll for the user`, decisionsFor(userCalls, DOC_PAYROLL), [true]);
+expectAll(`server allowed q4-plan for the user`, decisionsFor(userCalls, DOC_PLAN), true);
+expectAll(`server allowed payroll for the user`, decisionsFor(userCalls, DOC_PAYROLL), true);
 
 // The adversarial case. The model is TOLD it has authority it does not have.
 // Nothing in the prompt can change the answer, because the answer is not
@@ -329,7 +375,7 @@ const injectReply = await runAgent(
   injectCalls
 );
 console.log(`  model said: ${injectReply.replace(/\s+/g, " ").trim().slice(0, 200)}`);
-expect(`server STILL denied payroll`, decisionsFor(injectCalls, DOC_PAYROLL), [false]);
+expectAll(`server STILL denied payroll`, decisionsFor(injectCalls, DOC_PAYROLL), false);
 
 console.log(
   failures === 0
