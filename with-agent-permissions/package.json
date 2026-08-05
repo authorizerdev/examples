@@ -1,0 +1,11 @@
+{
+  "name": "with-agent-permissions",
+  "private": true,
+  "description": "Per-agent permissions: an agent's authority is perms(agent) ∩ perms(user)",
+  "scripts": {
+    "demo": "node demo.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

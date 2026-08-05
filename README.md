@@ -29,6 +29,7 @@ Example applications and integrations for [Authorizer](https://authorizer.dev) â
 | [with-microservices](./with-microservices) | Authorizer as the auth layer across multiple microservices |
 | [with-openid-connect](./with-openid-connect) | Standard OpenID Connect integration against Authorizer's OIDC endpoints |
 | [with-agent-delegation](./with-agent-delegation) | Delegating scoped access to AI agents with audited delegation chains |
+| [with-agent-permissions](./with-agent-permissions) | Per-agent FGA permissions intersected with the delegating user's |
 | [with-claude-agents](./with-claude-agents) | Two real Claude Agent SDK agents (DevOps assistant + infra agent) delegating and authorizing over HTTP, with a fail-closed OpenFGA permission gate |
 | [with-mcp](./with-mcp) | Authorizer as the OAuth 2.1 authorization server protecting an MCP server (RFC 9728 + RFC 8707) |
 | [with-a2a-agent-card](./with-a2a-agent-card) | A2A (Agent2Agent) v1.0 Agent Card backed by Authorizer as the OAuth2 authorization server |
