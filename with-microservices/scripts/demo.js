@@ -13,28 +13,47 @@ const BILLING_URL = process.env.BILLING_URL || "http://localhost:4002";
 const EMAIL = process.env.DEMO_EMAIL || `demo.user+${Date.now()}@example.com`;
 const PASSWORD = "Demo_password_123!"; // obviously-fake demo credential
 
-async function graphql(query, variables) {
+// Returns { data, setCookies } — setCookies carries the MFA session cookie
+// that skip_mfa_setup needs (see below).
+async function graphqlFull(query, variables, headers = {}) {
   const res = await fetch(`${AUTHORIZER_URL}/graphql`, {
     method: "POST",
     // CSRF middleware requires an allow-listed Origin + JSON content type.
-    headers: { "Content-Type": "application/json", Origin: AUTHORIZER_URL },
+    headers: { "Content-Type": "application/json", Origin: AUTHORIZER_URL, ...headers },
     body: JSON.stringify({ query, variables }),
   });
   const body = await res.json();
   if (body.errors?.length) throw new Error(body.errors.map((e) => e.message).join("; "));
-  return body.data;
+  return { data: body.data, setCookies: res.headers.getSetCookie() };
 }
 
 // 1. user token
 console.log(`1) signing up demo user ${EMAIL}`);
-const signup = await graphql(
+const { data: signup, setCookies } = await graphqlFull(
   `mutation ($params: SignUpRequest!) {
      signup(params: $params) { access_token user { id email } }
    }`,
   { params: { email: EMAIL, password: PASSWORD, confirm_password: PASSWORD } },
 );
-const userToken = signup.signup.access_token;
-console.log(`   user ${signup.signup.user.id} — got user access token`);
+// Since 2.4.0 MFA is on by default, so signup enrols nothing but OFFERS an MFA
+// setup: no access token, and the message "Proceed to mfa setup", until the user
+// either enrols a factor or explicitly declines. This demo is about
+// service-to-service auth, not enrollment, so it declines — that is what
+// skip_mfa_setup is for. It is identified by the MFA session cookie the signup
+// response set, plus the email. Under --enforce-mfa declining is refused.
+let auth = signup.signup;
+if (!auth.access_token) {
+  const { data } = await graphqlFull(
+    `mutation ($params: SkipMfaSetupRequest!) {
+       skip_mfa_setup(params: $params) { access_token user { id email } }
+     }`,
+    { params: { email: EMAIL } },
+    { Cookie: setCookies.map((c) => c.split(";")[0]).join("; ") },
+  );
+  auth = data.skip_mfa_setup;
+}
+const userToken = auth.access_token;
+console.log(`   user ${auth.user.id} — got user access token`);
 
 // 2. create an order through the gateway
 console.log("2) POST /api/orders (user token)");
