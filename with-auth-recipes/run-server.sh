@@ -27,6 +27,7 @@ exec go run main.go \
   --allowed-origins=localhost:"$PORT",localhost:3000,localhost:5173 \
   --jwt-type=HS256 \
   --jwt-secret=insecure-local-recipes-jwt-secret \
+  --encryption-key=insecure-local-recipes-encryption-key \
   --smtp-host=localhost \
   --smtp-port=1025 \
   --smtp-sender-email=noreply@authorizer.local \

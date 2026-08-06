@@ -67,6 +67,7 @@ services:
       - --client-secret=60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa
       - --allowed-origins=*
       - --jwt-type=RS256
+      - --encryption-key=insecure-local-demo-encryption-key
       - |-
         --jwt-private-key=-----BEGIN RSA PRIVATE KEY-----
         MIIEowIBAAKCAQEA5dC50fVvQIDm66bBYW+qI+MypP9Pv9SMoHIz9cpcOj9sNhXI
