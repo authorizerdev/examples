@@ -23,11 +23,30 @@ done
 
 echo "== 1. User signup (Authorizer GraphQL) =="
 EMAIL="demo-$(date +%s)-$RANDOM@example.com"
-USER_TOKEN=$(curl -sf -X POST "$AUTHORIZER_URL/graphql" \
+SIGNUP_HEADERS=$(mktemp)
+trap 'rm -f "$SIGNUP_HEADERS"' EXIT
+USER_TOKEN=$(curl -sf -D "$SIGNUP_HEADERS" -X POST "$AUTHORIZER_URL/graphql" \
   -H 'Content-Type: application/json' \
   -H "Origin: $AUTHORIZER_URL" \
   -d "{\"query\":\"mutation{ signup(params:{email:\\\"$EMAIL\\\", password:\\\"Demo@12345\\\", confirm_password:\\\"Demo@12345\\\"}){ access_token } }\"}" \
-  | json "['data']['signup']['access_token']")
+  | json "['data']['signup']['access_token'] or ''")
+# Since 2.4.0 MFA is on by default, so signup enrols nothing but OFFERS an MFA
+# setup: no access token, and the message "Proceed to mfa setup", until the user
+# either enrols a factor or explicitly declines. This demo is about
+# service-to-service auth, not enrollment, so it declines — that is what
+# skip_mfa_setup is for. It is identified by the MFA session cookie the signup
+# response set (marked Secure, so no client replays it over plain http — it has
+# to be sent by hand) plus the email. Under --enforce-mfa declining is refused.
+if [ -z "$USER_TOKEN" ]; then
+  MFA_COOKIE=$(grep -io 'mfa_session=[^;]*' "$SIGNUP_HEADERS" | head -1)
+  [ -n "$MFA_COOKIE" ] || { bad "signup: no access token and no mfa session"; exit 1; }
+  USER_TOKEN=$(curl -sf -X POST "$AUTHORIZER_URL/graphql" \
+    -H 'Content-Type: application/json' \
+    -H "Origin: $AUTHORIZER_URL" \
+    -H "Cookie: $MFA_COOKIE" \
+    -d "{\"query\":\"mutation{ skip_mfa_setup(params:{email:\\\"$EMAIL\\\"}){ access_token } }\"}" \
+    | json "['data']['skip_mfa_setup']['access_token'] or ''")
+fi
 [ -n "$USER_TOKEN" ] && ok "signed up $EMAIL, got user access token" || { bad "signup"; exit 1; }
 
 echo "== 2. Who am I (gateway, user JWT) =="

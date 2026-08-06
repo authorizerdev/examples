@@ -20,6 +20,7 @@ import {
   gql,
   adminHeaders,
   clearMailbox,
+  cookieHeader,
   waitForEmail,
   extractVerificationToken,
   randomEmail,
@@ -103,11 +104,35 @@ try {
     { params: { email, password, confirm_password: password } }
   );
   const token = extractVerificationToken(await waitForEmail(email));
-  await gql(
-    `mutation ($params: VerifyEmailRequest!) { verify_email(params: $params) { message } }`,
+  const { data: verified, setCookies } = await gql(
+    `mutation ($params: VerifyEmailRequest!) {
+      verify_email(params: $params) { message access_token }
+    }`,
     { params: { token } }
   );
   console.log('signup + verify_email done for', email);
+
+  // Since 2.4.0 MFA is on by default, so verify_email stops at an MFA setup
+  // OFFER and withholds the access token; decline it to finish the login.
+  // Identified by the MFA session cookie set above.
+  //
+  // KNOWN GAP (server-side, not fixable here): with email verification AND
+  // MFA both on, `user.signup` never fires. verify_email returns from the MFA
+  // gate before it reaches its own RegisterEvent, and skip_mfa_setup issues
+  // its auth response with isSignUp=false, so only `user.login` is emitted.
+  // Until the server carries the signup flag through the MFA session, use
+  // `user.created` (fires at signup, pre-verification) or `user.login` if you
+  // need an event on this path. See this recipe's README.
+  if (!verified.verify_email.access_token) {
+    await gql(
+      `mutation ($params: SkipMfaSetupRequest!) {
+        skip_mfa_setup(params: $params) { message }
+      }`,
+      { params: { email } },
+      { Cookie: cookieHeader(setCookies) }
+    );
+    console.log('declined the mfa setup offer, login complete');
+  }
 
   // 4. Wait for the delivery and verify the signature.
   const { raw, signature } = await Promise.race([

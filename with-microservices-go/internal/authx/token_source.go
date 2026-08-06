@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	authorizer "github.com/authorizerdev/authorizer-go"
+	authorizer "github.com/authorizerdev/authorizer-go/v2"
 )
 
 // refreshMargin is how long before expiry a cached token is considered stale.

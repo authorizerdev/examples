@@ -34,6 +34,4 @@ exec go run main.go \
   --organization-name="Acme Local" \
   --enable-email-verification \
   --enable-magic-link-login \
-  --enable-mfa \
-  --enable-totp-login \
   --enforce-mfa=false

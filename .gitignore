@@ -24,3 +24,6 @@ yarn-debug.log*
 yarn-error.log*
 
 .cache
+
+# compiled example binaries
+with-go/with-go
