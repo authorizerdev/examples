@@ -20,6 +20,7 @@ services:
       - --jwt-type=HS256
       # Obviously-fake dev secrets — change all of these outside a local demo.
       - --jwt-secret=dev-jwt-secret-CHANGE-ME
+      - --encryption-key=dev-encryption-key-CHANGE-ME
       - --admin-secret=admin
       - --client-id=00000000-demo-client-id-000000000000
       - --client-secret=demo-client-secret-CHANGE-ME

@@ -20,6 +20,7 @@ services:
       # one). This is the SAME well-known dev keypair `make dev` uses in the
       # server repo — public knowledge, demo only, NEVER deploy it.
       - --jwt-type=RS256
+      - --encryption-key=insecure-local-demo-encryption-key
       - |-
         --jwt-private-key=-----BEGIN RSA PRIVATE KEY-----
         MIIEowIBAAKCAQEA5dC50fVvQIDm66bBYW+qI+MypP9Pv9SMoHIz9cpcOj9sNhXI
