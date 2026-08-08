@@ -55,6 +55,10 @@ export AUTHORIZER_ADMIN_SECRET=admin
 - `GetTokenRequest` carries all RFC 8693 params (`subject_token`,
   `actor_token`, `resource`, plus `client_secret` for the exchange auth)
 - The async client (`AsyncAuthorizerClient`) mirrors the sync API 1:1
-- Known parity gap: the SDK's `Client` type doesn't expose `client_id` yet
-  (server added it in authorizer#664); `setup.py` uses `client.id`, which
-  equals `client_id` for admin-created clients
+- The SDK's `Client` type now exposes `client_id` (the public OAuth
+  identifier) alongside `id` (the internal surrogate key), so `setup.py`
+  prints `client.client_id`. The two coincide for admin-created clients but
+  not in general — the reserved interactive client is one where they differ
+- Signup returns no access token on a default install: MFA is on since
+  2.4.0, so both flows decline the offer with `skip_mfa_setup` and then log
+  in again to get a token carrying the demo's `crm:*` scopes

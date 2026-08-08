@@ -6,7 +6,7 @@ require github.com/authorizerdev/authorizer-go/v2 v2.2.0-rc.4
 
 require (
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260415201107-50325440f8f2.1 // indirect
-	github.com/authorizerdev/authorizer-proto-go v0.1.0 // indirect
+	github.com/authorizerdev/authorizer-proto-go v0.2.0-rc.0 // indirect
 	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sys v0.42.0 // indirect
 	golang.org/x/text v0.34.0 // indirect

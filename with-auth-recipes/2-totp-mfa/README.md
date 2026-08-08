@@ -10,8 +10,12 @@ compatible with Google Authenticator etc.).
 
 ## Flow
 
-1. `signup` with `is_multi_factor_auth_enabled: true`. (With
-   `--enforce-mfa` the server forces this on for everyone.)
+1. `signup`. Since 2.4.0 MFA is on by default, so nothing has to be requested:
+   the `is_multi_factor_auth_enabled` signup field was removed as a security
+   fix (an unauthenticated caller must not decide whether MFA applies to the
+   account it is creating). With `--enforce-mfa` enrollment is additionally
+   mandatory — it cannot be declined with `skip_mfa_setup`. For an existing
+   user the admin `_update_user` path is the only override.
 2. `verify_email` with the emailed token. Because MFA + TOTP are enabled the
    response is the **enrollment challenge** instead of tokens:
    - `should_show_totp_screen: true`
@@ -33,5 +37,6 @@ npm install        # once, in the parent folder (pulls otpauth)
 node totp-mfa.mjs
 ```
 
-Requires: Mailpit up, server started via `../run-server.sh`
-(`--enable-mfa --enable-totp-login`).
+Requires: Mailpit up, server started via `../run-server.sh`. MFA and TOTP are
+on by default since 2.4.0 — the old `--enable-mfa` / `--enable-totp-login`
+flags no longer exist (the opt-outs are `--disable-mfa` / `--disable-totp-login`).

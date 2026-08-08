@@ -1,12 +1,17 @@
 // TOTP multi-factor auth, end to end:
-// 1. signup with is_multi_factor_auth_enabled → verification email
+// 1. signup → verification email
 // 2. verify_email → server starts TOTP enrollment: returns the shared secret
 //    (+ QR image + recovery codes) and sets an `mfa_session` cookie
 // 3. generate a code from the secret (otpauth lib) → verify_otp(is_totp) with
 //    the mfa cookie → enrolled + first session
 // 4. fresh login → TOTP challenge again → verify_otp → session → profile
 //
-// Server must run with --enable-mfa --enable-totp-login (see ../run-server.sh).
+// Since 2.4.0 MFA and TOTP are on by default, so nothing has to be switched on
+// for this recipe (see ../run-server.sh). Signup used to opt the new user in
+// with is_multi_factor_auth_enabled, but that field was removed as a security
+// fix: letting an unauthenticated caller decide whether MFA applies to the
+// account they are creating defeats the server's MFA-on-by-default policy.
+// For an existing user the admin `_update_user` path is now the only override.
 import * as OTPAuth from 'otpauth';
 import {
   gql,
@@ -33,20 +38,13 @@ const AUTH_RESPONSE = `
   user { id email }
 `;
 
-// 1. Sign up with MFA enabled for this user.
+// 1. Sign up. MFA applies because the server has it on by default.
 await clearMailbox();
 const { data: signup } = await gql(
   `mutation ($params: SignUpRequest!) {
     signup(params: $params) { message }
   }`,
-  {
-    params: {
-      email,
-      password,
-      confirm_password: password,
-      is_multi_factor_auth_enabled: true,
-    },
-  }
+  { params: { email, password, confirm_password: password } }
 );
 console.log('signup:', signup.signup.message);
 

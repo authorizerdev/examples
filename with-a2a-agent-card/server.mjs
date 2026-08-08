@@ -29,6 +29,20 @@ const AGENT_URL = process.env.AGENT_URL || `http://localhost:${PORT}`;
 const oidc = await (
   await fetch(`${AUTHORIZER_URL}/.well-known/openid-configuration`)
 ).json();
+
+// Verifying bearers against JWKS only works if the AS signs with an ASYMMETRIC
+// key. An HMAC-signed deployment (--jwt-type HS256/HS384/HS512) publishes an
+// empty JWKS by design — the signing key is a shared secret — and every call
+// would 401 with an opaque "no applicable key found". Fail at boot instead.
+const { keys } = await (await fetch(oidc.jwks_uri)).json();
+if (!keys?.length) {
+  throw new Error(
+    `${oidc.jwks_uri} publishes no keys. Start Authorizer with an asymmetric ` +
+      `--jwt-type (RS256/RS384/RS512/ES256/...) plus --jwt-private-key/--jwt-public-key; ` +
+      `an HMAC --jwt-type cannot be verified by an A2A client.`,
+  );
+}
+
 const jwks = createRemoteJWKSet(new URL(oidc.jwks_uri));
 console.log(`[a2a-agent] trusting issuer ${oidc.issuer}, token endpoint ${oidc.token_endpoint}`);
 

@@ -1,9 +1,17 @@
 const { Authorizer } = require('@authorizerdev/authorizer-js');
 
+const authorizerURL = 'https://demo.authorizer.dev';
+
 const authRef = new Authorizer({
-  authorizerURL: 'https://demo.authorizer.dev',
-  redirectURL: 'https://demo.authorizer.dev/app',
+  authorizerURL,
+  redirectURL: `${authorizerURL}/app`,
   clientID: '96fed66c-9779-4694-a79a-260fc489ce33',
+  // The server's CSRF guard rejects any state-changing request without an
+  // Origin (or Referer) header, and POST /graphql — which the SDK uses for
+  // validateJWTToken — is state-changing. A browser sets Origin itself, but
+  // this middleware runs in Node, where nothing does, so send it explicitly.
+  // The server's own origin always passes.
+  extraHeaders: { Origin: authorizerURL },
 });
 
 const authMiddleware = async (req, res, next) => {

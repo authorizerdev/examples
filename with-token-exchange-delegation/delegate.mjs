@@ -18,12 +18,22 @@ if (!AGENT_CLIENT_ID || !AGENT_CLIENT_SECRET) {
   process.exit(1);
 }
 
+// A token-withheld MFA offer is identified by a session cookie, and Node's
+// fetch has no cookie jar — so carry the cookie across requests by hand.
+let cookie = '';
+
 const gql = async (query, variables) => {
   const res = await fetch(`${AUTHORIZER_URL}/graphql`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', Origin: AUTHORIZER_URL },
+    headers: {
+      'Content-Type': 'application/json',
+      Origin: AUTHORIZER_URL,
+      ...(cookie && { Cookie: cookie }),
+    },
     body: JSON.stringify({ query, variables }),
   });
+  const mfa = res.headers.getSetCookie().find((c) => c.startsWith('mfa_session='));
+  if (mfa) cookie = mfa.split(';')[0];
   return res.json();
 };
 
@@ -52,7 +62,35 @@ const auth = await gql(
   { params: { email, password, confirm_password: password, scope } },
 );
 if (auth.errors?.length) throw new Error(auth.errors[0].message);
-const userToken = auth.data.signup.access_token;
+
+// Since 2.4.0 MFA is ON by default, so signup OFFERS an MFA setup and WITHHOLDS
+// the access token ("Proceed to mfa setup") until the user either enrols a
+// factor or explicitly declines. This demo declines, which is what
+// skip_mfa_setup is for: it records the refusal and releases the withheld
+// token. Identification is by the MFA session cookie set above plus the email,
+// so it must run on the same client. Fails under --enforce-mfa, where declining
+// is not permitted; a real app would drive the TOTP/OTP setup screen instead.
+//
+// The token skip_mfa_setup releases carries the DEFAULT scope, not the scope
+// signup asked for — the pending MFA session does not carry the request's
+// scope through. So log in again once the offer is out of the way: now that
+// the user has declined, login returns a token directly, with the scope we ask
+// for. That scope is the subject authority the exchange below attenuates.
+let userToken = auth.data.signup.access_token;
+if (!userToken) {
+  const skipped = await gql(
+    `mutation ($params: SkipMfaSetupRequest!) { skip_mfa_setup(params: $params) { access_token } }`,
+    { params: { email } },
+  );
+  if (skipped.errors?.length) throw new Error(skipped.errors[0].message);
+
+  const relogin = await gql(
+    `mutation ($params: LoginRequest!) { login(params: $params) { access_token } }`,
+    { params: { email, password, scope } },
+  );
+  if (relogin.errors?.length) throw new Error(relogin.errors[0].message);
+  userToken = relogin.data.login.access_token;
+}
 console.log('1. user token scope     :', decode(userToken).scope.join(' '));
 
 // --- 2. Agent gets its own token (client_credentials) ---------------------

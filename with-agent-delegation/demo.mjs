@@ -44,7 +44,9 @@ const AGENTS = [
 
 // ---------------------------------------------------------------- helpers --
 
-async function gql(query, variables = undefined, headers = {}) {
+// Returns { data, setCookies } — setCookies carries the MFA session cookie
+// that skip_mfa_setup needs (see getUserToken).
+async function gqlFull(query, variables = undefined, headers = {}) {
   const res = await fetch(`${BASE}/graphql`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Origin: ORIGIN, ...headers },
@@ -52,8 +54,13 @@ async function gql(query, variables = undefined, headers = {}) {
   });
   const body = await res.json();
   if (body.errors) throw new Error(body.errors.map((e) => e.message).join("; "));
-  return body.data;
+  return { data: body.data, setCookies: res.headers.getSetCookie() };
 }
+
+const gql = (q, v, h) => gqlFull(q, v, h).then((r) => r.data);
+
+// Turn Set-Cookie response headers into a Cookie request header value.
+const cookieHeader = (setCookies) => setCookies.map((c) => c.split(";")[0]).join("; ");
 
 const adminGql = (q, v) => gql(q, v, { "x-authorizer-admin-secret": ADMIN_SECRET });
 
@@ -113,15 +120,38 @@ function expectRejection(label, { status, body }) {
 
 // Login as the demo user; sign up on first run. If the email exists with a
 // different password (a shared dev database), delete and recreate it.
+// Since 2.4.0 MFA is on by default, so signup/login enrol nothing but OFFER an
+// MFA setup: no access token, and the message "Proceed to mfa setup", until the
+// user either enrols a factor or explicitly declines. This demo is about
+// delegation, not enrollment, so it declines — that is what skip_mfa_setup is
+// for. The call is identified by the MFA session cookie the previous response
+// set, plus the email. Under --enforce-mfa declining is refused and the user
+// must enrol instead.
+async function settleMfaOffer(auth, setCookies) {
+  if (auth?.access_token) return auth.access_token;
+  const { data } = await gqlFull(
+    `mutation ($params: SkipMfaSetupRequest!) { skip_mfa_setup(params: $params) { access_token } }`,
+    { params: { email: USER_EMAIL } },
+    { Cookie: cookieHeader(setCookies) }
+  );
+  return data.skip_mfa_setup.access_token;
+}
+
 async function getUserToken() {
-  const login = () =>
-    gql(`mutation ($params: LoginRequest!) { login(params: $params) { access_token } }`, {
-      params: { email: USER_EMAIL, password: USER_PASSWORD, scope: USER_SCOPES },
-    }).then((d) => d.login.access_token);
-  const signup = () =>
-    gql(`mutation ($params: SignUpRequest!) { signup(params: $params) { access_token } }`, {
-      params: { email: USER_EMAIL, password: USER_PASSWORD, confirm_password: USER_PASSWORD, scope: USER_SCOPES },
-    }).then((d) => d.signup.access_token);
+  const login = async () => {
+    const { data, setCookies } = await gqlFull(
+      `mutation ($params: LoginRequest!) { login(params: $params) { access_token } }`,
+      { params: { email: USER_EMAIL, password: USER_PASSWORD, scope: USER_SCOPES } }
+    );
+    return settleMfaOffer(data.login, setCookies);
+  };
+  const signup = async () => {
+    const { data, setCookies } = await gqlFull(
+      `mutation ($params: SignUpRequest!) { signup(params: $params) { access_token } }`,
+      { params: { email: USER_EMAIL, password: USER_PASSWORD, confirm_password: USER_PASSWORD, scope: USER_SCOPES } }
+    );
+    return settleMfaOffer(data.signup, setCookies);
+  };
 
   try {
     return await login();

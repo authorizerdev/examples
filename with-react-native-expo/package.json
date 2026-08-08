@@ -9,7 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@authorizerdev/authorizer-js": "^3.3.0-rc.4",
+    "@authorizerdev/authorizer-js": "^3.3.0",
     "expo": "~49.0.15",
     "expo-auth-session": "~5.0.2",
     "expo-crypto": "~12.4.1",

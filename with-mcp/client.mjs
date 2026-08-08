@@ -22,7 +22,9 @@ const log = (step, msg) => console.log(`\n[${step}] ${msg}`);
 const decodeJwt = (t) =>
   JSON.parse(Buffer.from(t.split(".")[1], "base64url").toString());
 
-async function gql(url, query, variables, headers = {}) {
+// Returns { data, setCookies } — setCookies carries the MFA session cookie
+// that skip_mfa_setup needs (see below).
+async function gqlFull(url, query, variables, headers = {}) {
   const res = await fetch(`${url}/graphql`, {
     method: "POST",
     // Authorizer's CSRF guard requires an Origin on state-changing requests.
@@ -31,8 +33,11 @@ async function gql(url, query, variables, headers = {}) {
   });
   const body = await res.json();
   if (body.errors) throw new Error(JSON.stringify(body.errors));
-  return body.data;
+  return { data: body.data, setCookies: res.headers.getSetCookie() };
 }
+
+const gql = (url, query, variables, headers) =>
+  gqlFull(url, query, variables, headers).then((r) => r.data);
 
 // --- 1. Unauthenticated call: expect 401 + WWW-Authenticate ---------------
 const probe = await fetch(MCP_URL, {
@@ -61,12 +66,28 @@ log(3, `token_endpoint=${oidc.token_endpoint}`);
 // --- 4a. User signs up (the human the agent will act for) ------------------
 const email = `mcp_demo_${Date.now()}@authorizer.dev`;
 const password = "Password@123";
-const signup = await gql(
+const { data: signup, setCookies } = await gqlFull(
   authorizerUrl,
   `mutation ($params: SignUpRequest!) { signup(params: $params) { access_token } }`,
   { params: { email, password, confirm_password: password } }
 );
-const subjectToken = signup.signup.access_token;
+// Since 2.4.0 MFA is on by default, so signup enrols nothing but OFFERS an MFA
+// setup: no access token, and the message "Proceed to mfa setup", until the
+// user either enrols a factor or explicitly declines. This walkthrough is about
+// resource-bound tokens, not enrollment, so it declines — that is what
+// skip_mfa_setup is for. The call is identified by the MFA session cookie the
+// signup response set, plus the email. Under --enforce-mfa declining is refused
+// and the user must enrol instead.
+let subjectToken = signup.signup.access_token;
+if (!subjectToken) {
+  const skipped = await gql(
+    authorizerUrl,
+    `mutation ($params: SkipMfaSetupRequest!) { skip_mfa_setup(params: $params) { access_token } }`,
+    { params: { email } },
+    { Cookie: setCookies.map((c) => c.split(";")[0]).join("; ") }
+  );
+  subjectToken = skipped.skip_mfa_setup.access_token;
+}
 log("4a", `user ${email} signed up; subject_token acquired`);
 
 // --- 4b. Register the agent service account (admin, one-time setup) --------

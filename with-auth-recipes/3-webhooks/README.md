@@ -31,6 +31,15 @@ signup otherwise), `user.login`, `user.deleted`, `user.deactivated`,
 `user.access_revoked`, `user.access_enabled`.
 Delivery attempts are recorded and queryable via `_webhook_logs`.
 
+> **Known gap since 2.4.0.** With email verification *and* MFA both on — the
+> configuration `run-server.sh` uses, and the default for MFA — `user.signup`
+> never fires. `verify_email` returns from the MFA gate before reaching its
+> own event registration, and `skip_mfa_setup` issues its auth response with
+> `isSignUp=false`, so the path emits only `user.login`. Until the server
+> carries the signup flag through the MFA session, subscribe to `user.created`
+> (fires at signup, before verification) or `user.login` instead. This recipe
+> still registers `user.signup` because that is the event it is about.
+
 ## SSRF protection vs. local testing
 
 Authorizer refuses webhook endpoints on loopback/private networks (127/8,

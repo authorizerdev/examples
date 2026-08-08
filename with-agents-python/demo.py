@@ -32,7 +32,9 @@ from authorizer import (
     AsyncAuthorizerClient,
     AuthorizerClient,
     GetTokenRequest,
+    LoginRequest,
     SignUpRequest,
+    SkipMfaSetupRequest,
 )
 from authorizer import AuthorizerError
 
@@ -54,6 +56,30 @@ def claims(jwt: str) -> dict:
     payload = jwt.split(".")[1]
     payload += "=" * (-len(payload) % 4)
     return json.loads(base64.urlsafe_b64decode(payload))
+
+
+PASSWORD = "Agents-demo-1!"
+
+# The user's own rights. Every delegated token below is carved out of these:
+# an agent can only ever narrow what the user already holds.
+USER_SCOPE = ["openid", "email", "crm:read", "crm:write", "report:write"]
+
+MFA_OFFER_NOTE = """
+    Since 2.4.0 MFA is on by default, so signup enrols nothing but OFFERS an
+    MFA setup: it returns no access token and the message "Proceed to mfa
+    setup" until the user either enrols a factor or explicitly declines.
+    This demo declines, which is what skip_mfa_setup is for.
+
+    Declining is not quite enough here. The token skip_mfa_setup releases
+    carries the DEFAULT scope, not the scope signup asked for -- the pending
+    MFA session does not carry the request's scope through -- and this demo
+    needs the crm/report scopes it exists to attenuate. So log in again once
+    the offer is out of the way: the user has now declined, so login returns
+    a token directly, with the scope we ask for.
+
+    Under --enforce-mfa declining is not permitted and skip_mfa_setup fails;
+    a real app would drive the TOTP/OTP setup screen instead.
+"""
 
 
 def print_act_chain(token: str, label: str) -> None:
@@ -80,11 +106,16 @@ def run_sync() -> None:
     user = client.signup(
         SignUpRequest(
             email=email,
-            password="Agents-demo-1!",
-            confirm_password="Agents-demo-1!",
-            scope=["openid", "email", "crm:read", "crm:write", "report:write"],
+            password=PASSWORD,
+            confirm_password=PASSWORD,
+            scope=USER_SCOPE,
         )
     )
+    if user.access_token is None:  # MFA setup offered — see MFA_OFFER_NOTE
+        client.skip_mfa_setup(SkipMfaSetupRequest(email=email))
+        user = client.login(
+            LoginRequest(email=email, password=PASSWORD, scope=USER_SCOPE)
+        )
     print(f"1. user token minted for {email}")
     print(f"   scope: {claims(user.access_token).get('scope')}")
 
@@ -161,14 +192,20 @@ async def run_async() -> None:
         die("run setup.py first and export the variables it prints")
     async with AsyncAuthorizerClient(client_id=CLIENT_ID, authorizer_url=AUTHORIZER_URL) as client:
         email = f"agents-demo-async+{int(time.time())}@example.com"
+        scope = ["openid", "crm:read"]
         user = await client.signup(
             SignUpRequest(
                 email=email,
-                password="Agents-demo-1!",
-                confirm_password="Agents-demo-1!",
-                scope=["openid", "crm:read"],
+                password=PASSWORD,
+                confirm_password=PASSWORD,
+                scope=scope,
             )
         )
+        if user.access_token is None:  # MFA setup offered — see MFA_OFFER_NOTE
+            await client.skip_mfa_setup(SkipMfaSetupRequest(email=email))
+            user = await client.login(
+                LoginRequest(email=email, password=PASSWORD, scope=scope)
+            )
     async with AsyncAuthorizerClient(client_id=ORCHESTRATOR_ID, authorizer_url=AUTHORIZER_URL) as orch_client:
         orch = await orch_client.get_token(
             GetTokenRequest(grant_type=GRANT_TYPE_CLIENT_CREDENTIALS, client_secret=ORCHESTRATOR_SECRET)
