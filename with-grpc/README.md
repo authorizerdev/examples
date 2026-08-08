@@ -70,12 +70,16 @@ no CSRF).
 - `make dev` serves plaintext gRPC — fine locally. In production terminate TLS on the gRPC listener (`--grpc-tls-cert`/`--grpc-tls-key`) and dial with `credentials.NewTLS(&tls.Config{})` instead of `insecure.NewCredentials()`. Bearer tokens must never cross an unencrypted channel outside local dev.
 - Server reflection is on by default (`--enable-grpc-reflection`), so `grpcurl -plaintext localhost:9091 list` works too.
 
-## Regenerating the stubs
+## Where the stubs come from
 
-`gen/authorizer/v1/` is vendored from the server repo's protos:
+The generated Go stubs are a real versioned dependency, not vendored source:
 
-```bash
-# from the authorizer repo's proto/ directory
-buf generate --template buf.gen.clients.yaml --include-imports
-# copy gen/go-client/authorizer/v1/*.go here (adjust go_package_prefix to this module)
 ```
+github.com/authorizerdev/authorizer-proto-go v0.2.0-rc.1
+```
+
+[authorizer-proto-go](https://github.com/authorizerdev/authorizer-proto-go) is
+regenerated from the server repo's `proto/authorizer/v1/*.proto` on each
+release, so `go get -u` is all it takes to follow a schema change. The
+official Go SDK depends on the same module — you can mix `authorizer-go` and
+raw gRPC in one program without two copies of the types.
