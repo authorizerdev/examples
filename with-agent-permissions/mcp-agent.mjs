@@ -25,7 +25,10 @@ import path from "node:path";
 import readline from "node:readline";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SERVER_DIR = path.resolve(HERE, "../../authorizer");
+// Override to build a specific checkout, e.g. a release worktree. Must be the
+// same checkout run-server.sh started: `authorizer mcp` is a second process
+// against the same database, not a client of the running one.
+const SERVER_DIR = process.env.AUTHORIZER_SERVER_DIR ?? path.resolve(HERE, "../../authorizer");
 const DB_PATH = path.join(HERE, ".agent-demo.db");
 // A DELEGATED TOKEN LIVES 5 MINUTES. `go run` recompiles the whole server on
 // every spawn, which can eat most of that window before the first tool call —

@@ -44,11 +44,12 @@ const DOC_PLAN = `document:q4-plan-${runId}`;
 const DOC_PAYROLL = `document:payroll-${runId}`;
 const DOC_ROADMAP = `document:roadmap-${runId}`;
 
-// Declaring `type agent` IS the opt-in — there is no flag. The feature is
-// meaningless without a model that can express agent grants, and checking
-// `agent:x` against a model with no agent type ERRORS in OpenFGA rather than
-// returning false, so a flag switched on against an unprepared model would deny
-// every delegated request. Auto-detection makes that state unreachable.
+// Declaring `type agent` IS the opt-in — there is no enabling flag. The
+// feature is meaningless without a model that can express agent grants, and
+// checking `agent:x` against a model with no agent type ERRORS in OpenFGA
+// rather than returning false, so a flag switched on against an unprepared
+// model would deny every delegated request. Auto-detection makes that state
+// unreachable.
 const MODEL_WITH_AGENT = `model
   schema 1.1
 type user
@@ -59,8 +60,8 @@ type document
     define can_view: viewer
 `;
 
-// The same model WITHOUT the agent type: the "operator has not opted in" state,
-// used by the final section.
+// The same model WITHOUT the agent type: the "operator has not opted in"
+// state, used by the final section.
 const MODEL_WITHOUT_AGENT = `model
   schema 1.1
 type user
@@ -152,6 +153,21 @@ function expect(label, actual, wanted) {
   const ok = JSON.stringify(actual) === JSON.stringify(wanted);
   if (!ok) failures++;
   console.log(`  ${ok ? "✓" : "✗"} ${label}${ok ? "" : `  (got ${JSON.stringify(actual)}, want ${JSON.stringify(wanted)})`}`);
+}
+
+// Some denials are a rejected request rather than `allowed: false` — a check
+// the server refuses to evaluate at all returns an error, and swallowing that
+// would let a broken deployment read as a passing one.
+async function expectDenied(label, call) {
+  let outcome;
+  try {
+    outcome = `allowed: ${JSON.stringify(await call())}`;
+  } catch (err) {
+    console.log(`  ✓ ${label}  (${err.message})`);
+    return;
+  }
+  failures++;
+  console.log(`  ✗ ${label}  (got ${outcome}, want a denial)`);
 }
 
 // Since 2.4.0 MFA is on by default, so signup/login enrol nothing but OFFER an
@@ -325,20 +341,23 @@ async function main() {
   expect("calendar-agent -> q4-plan is now denied", await check(delegated, DOC_PLAN), false);
   expect("Alice -> q4-plan still allowed", await check(userToken, DOC_PLAN), true);
 
-  console.log(`\n== 8. The opt-in: a model with no \`type agent\` ==`);
+  console.log(`\n== 8. Not opted in: a model with no \`type agent\` ==`);
   // Tuples survive a model rewrite — only the schema changed, so Alice keeps
   // her payroll grant and the agent keeps the tuples it still has. The ONLY
-  // difference is that the model can no longer express an agent subject.
+  // difference is that the model can no longer express an agent subject, so
+  // the agent half of the intersection cannot be evaluated at all.
   await writeModel(MODEL_WITHOUT_AGENT);
-  expect(
-    "payroll — the agent now inherits Alice's FULL authority -> allowed",
-    await check(delegated, DOC_PAYROLL),
-    true
+  await expectDenied(
+    "payroll — the agent half cannot be evaluated -> the whole check is denied",
+    () => check(delegated, DOC_PAYROLL)
   );
-  console.log(`     This is the documented compatibility path, not a bug: deployments that`);
-  console.log(`     have not opted in keep their existing behaviour byte-for-byte. It is`);
-  console.log(`     counted as authorizer_fga_delegated_checks_total{outcome="not_enforced"}`);
-  console.log(`     so you can alert on agent traffic arriving unconstrained.`);
+  console.log(`     Fail closed: a check that cannot be evaluated is not a check that passes.`);
+  console.log(`     Authorizing as the user alone would hand the agent Alice's full authority,`);
+  console.log(`     which is exactly the Confused Deputy this feature exists to prevent.`);
+  console.log(`     Deployments migrating from 2.3.x can set --fga-allow-unconstrained-agents`);
+  console.log(`     to restore that old behaviour; either way it is counted as`);
+  console.log(`     authorizer_fga_delegated_checks_total{outcome="not_enforced"}, so you can`);
+  console.log(`     alert on agent traffic arriving unconstrained.`);
 
   // Leave the store as we found it for the next run.
   await writeModel(MODEL_WITH_AGENT);
