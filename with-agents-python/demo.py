@@ -10,7 +10,7 @@ nested `act` (actor) claim while the scope can only narrow.
 
 Requires an Authorizer server built from main (`make dev` in the server
 repo) and the Authorizer Python SDK (token exchange ships in
-`authorizer-py>=0.3.0rc3`):
+`authorizer-py>=0.3.0rc4`):
 
     pip install -r requirements.txt
 """
@@ -82,6 +82,17 @@ MFA_OFFER_NOTE = """
 """
 
 
+def mfa_cookie(client) -> dict[str, str]:
+    """Header replaying the MFA session cookie signup set on this client.
+
+    skip_mfa_setup is identified by that cookie plus the email. The server
+    marks it Secure (--app-cookie-secure defaults to true), so httpx keeps it
+    in its jar but refuses to replay it over plain http and it has to be sent
+    by hand. A deployment on https needs none of this.
+    """
+    return {"Cookie": f"mfa_session={client._http.cookies.get('mfa_session')}"}
+
+
 def print_act_chain(token: str, label: str) -> None:
     c = claims(token)
     print(f"\n== {label} ==")
@@ -112,7 +123,7 @@ def run_sync() -> None:
         )
     )
     if user.access_token is None:  # MFA setup offered — see MFA_OFFER_NOTE
-        client.skip_mfa_setup(SkipMfaSetupRequest(email=email))
+        client.skip_mfa_setup(SkipMfaSetupRequest(email=email), mfa_cookie(client))
         user = client.login(
             LoginRequest(email=email, password=PASSWORD, scope=USER_SCOPE)
         )
@@ -202,7 +213,9 @@ async def run_async() -> None:
             )
         )
         if user.access_token is None:  # MFA setup offered — see MFA_OFFER_NOTE
-            await client.skip_mfa_setup(SkipMfaSetupRequest(email=email))
+            await client.skip_mfa_setup(
+                SkipMfaSetupRequest(email=email), mfa_cookie(client)
+            )
             user = await client.login(
                 LoginRequest(email=email, password=PASSWORD, scope=scope)
             )

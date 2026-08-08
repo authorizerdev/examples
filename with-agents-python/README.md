@@ -22,7 +22,7 @@ upstream hop dropped (`invalid_scope`), and delegated tokens live 5 minutes.
 
 Requires a server built from main (`make dev` in the server repo → :8080)
 and the Authorizer Python SDK (token-exchange support ships in
-`authorizer-py>=0.3.0rc3`):
+`authorizer-py>=0.3.0rc4`):
 
 ```bash
 python3 -m venv .venv

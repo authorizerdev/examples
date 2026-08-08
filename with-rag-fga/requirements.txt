@@ -1,4 +1,4 @@
 # Official Authorizer Python SDK: https://pypi.org/project/authorizer-py/
-authorizer-py>=0.3.0rc3
+authorizer-py>=0.3.0rc4
 # Small, pure-Python BM25 ranking (the only retrieval dependency)
 rank-bm25>=0.2.2
