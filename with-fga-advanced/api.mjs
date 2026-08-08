@@ -68,8 +68,14 @@ export async function loginOrSignup(name) {
   try {
     return await signup();
   } catch {}
+  // _delete_user takes an id, not an email: a phone-only signup has no email,
+  // so email was never an identifier every account has. Look the id up first.
+  const { _user: stale } = await adminGql(
+    `query ($p: GetUserRequest!) { _user(params: $p) { id } }`,
+    { p: { email } }
+  );
   await adminGql(`mutation ($p: DeleteUserRequest!) { _delete_user(params: $p) { message } }`, {
-    p: { email },
+    p: { id: stale.id },
   });
   return signup();
 }

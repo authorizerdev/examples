@@ -200,8 +200,14 @@ async function getUserToken() {
   try {
     return await signup();
   } catch {}
+  // _delete_user takes an id, not an email: a phone-only signup has no email,
+  // so email was never an identifier every account has. Look the id up first.
+  const { _user: stale } = await adminGql(
+    `query ($params: GetUserRequest!) { _user(params: $params) { id } }`,
+    { params: { email: USER_EMAIL } }
+  );
   await adminGql(`mutation ($params: DeleteUserRequest!) { _delete_user(params: $params) { message } }`, {
-    params: { email: USER_EMAIL },
+    params: { id: stale.id },
   });
   return signup();
 }
