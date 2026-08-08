@@ -29,6 +29,20 @@ const password = 'Obviously-Fake-Passw0rd!';
 const totpFor = (secret) =>
   new OTPAuth.TOTP({ secret, algorithm: 'SHA1', digits: 6, period: 30 });
 
+// RFC 6238 §5.2: a code the server has already accepted must not be accepted
+// a second time, and Authorizer enforces that. Enrollment and the login
+// challenge below happen seconds apart, well inside one 30s step, so the
+// second one has to wait for the counter to roll over — a real user typing
+// from their phone hits the same rule if they reuse a code.
+async function freshCode(secret, alreadyUsed) {
+  const totp = totpFor(secret);
+  for (;;) {
+    const code = totp.generate();
+    if (code !== alreadyUsed) return code;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+}
+
 const AUTH_RESPONSE = `
   message
   access_token
@@ -65,11 +79,12 @@ console.log('recovery codes:', enroll.authenticator_recovery_codes.length);
 
 // 3. Complete enrollment: generate the current code and verify it.
 // verify_otp requires the mfa_session cookie set in the previous step.
+const enrollmentCode = totpFor(enroll.authenticator_secret).generate();
 const { data: enrolled, setCookies: sessionCookies } = await gql(
   `mutation ($params: VerifyOTPRequest!) {
     verify_otp(params: $params) { ${AUTH_RESPONSE} }
   }`,
-  { params: { email, otp: totpFor(enroll.authenticator_secret).generate(), is_totp: true } },
+  { params: { email, otp: enrollmentCode, is_totp: true } },
   { Cookie: cookieHeader(mfaCookies1) }
 );
 console.log('verify_otp (enrollment):', enrolled.verify_otp.message);
@@ -88,7 +103,13 @@ const { data: mfaDone } = await gql(
   `mutation ($params: VerifyOTPRequest!) {
     verify_otp(params: $params) { ${AUTH_RESPONSE} }
   }`,
-  { params: { email, otp: totpFor(enroll.authenticator_secret).generate(), is_totp: true } },
+  {
+    params: {
+      email,
+      otp: await freshCode(enroll.authenticator_secret, enrollmentCode),
+      is_totp: true,
+    },
+  },
   { Cookie: cookieHeader(mfaCookies2) }
 );
 const session = mfaDone.verify_otp;
