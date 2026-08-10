@@ -162,24 +162,34 @@ authorizer --url https://auth.example.com --mcp-enabled   # ...your other flags
 presented at `/mcp` is checked against, and the server refuses to start without
 it.
 
-Then point a client at it:
+Then point a client at it — with a **static token**, which is the only path
+verified to work today:
 
 ```sh
-claude mcp add --transport http authorizer https://auth.example.com/mcp
+# Create a service account: dashboard → Identity → Clients
+# Mint a token bound to the MCP resource (the `resource` param is the part
+# people miss — without it the audience is the client id and /mcp rejects it)
+ACCESS_TOKEN=$(curl -s -X POST https://auth.example.com/oauth/token \
+  -d grant_type=client_credentials \
+  -d client_id=$CLIENT_ID -d client_secret=$CLIENT_SECRET \
+  -d scope=openid -d resource=https://auth.example.com/mcp | jq -r .access_token)
+
+claude mcp add --transport http authorizer https://auth.example.com/mcp \
+  --header "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-The client discovers everything else on its own: an unauthenticated call returns
-`401` with a `WWW-Authenticate` header naming the RFC 9728 metadata document,
-which names Authorizer as the authorization server. The OAuth flow that follows
-is the same one this example uses above — including the `resource` parameter,
-which here is `https://auth.example.com/mcp`.
+`claude mcp list` then reports **✔ Connected**.
 
-Register an OAuth client first (dashboard → **Identity → Clients**) and give the
-client its ID; Authorizer does not yet support RFC 7591 dynamic client
-registration. For a Claude.ai custom connector the redirect URI is
-`https://claude.ai/api/mcp/auth_callback`; for Claude Code, register both
-`http://localhost/callback` and `http://127.0.0.1/callback` — native apps bind
-an ephemeral port, which RFC 8252 §7.3 requires the server to ignore.
+> **The OAuth flow does not work with Claude Code yet.** Tested against Claude
+> Code 2.1.226, it refuses the server outright:
+> *"Incompatible auth server: does not support dynamic client registration"* —
+> and it does not fall back to a manually-supplied client id. Authorizer has
+> neither RFC 7591 DCR nor Client ID Metadata Documents; adding one of them is
+> what will make the browser OAuth path reachable.
+
+Note the static token identifies the **service account**, not a human, so
+`profile` returns nothing useful and permission checks resolve to
+`service_account:<client_id>`.
 
 > The older `authorizer mcp` stdio subcommand still works but is **deprecated**
 > and will be removed in 2.5.0. It ran a second copy of the whole server and
