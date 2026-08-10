@@ -27,3 +27,7 @@ yarn-error.log*
 
 # compiled example binaries
 with-go/with-go
+
+# compiled example binaries
+with-grpc/with-grpc
+with-microservices-go/bin/
