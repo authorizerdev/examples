@@ -48,8 +48,11 @@ crypto.
    line. Every internal hop is authenticated by the *calling service's own*
    machine token, verified the same way plus two machine-specific checks:
    `login_method === "service_account"` and the required scope in the `scope`
-   claim. User context travels as `X-User-Id` / `X-User-Email` headers, which
-   services accept **only** alongside a valid machine token.
+   claim. User context travels as an `X-User-Id` header, which services accept
+   **only** alongside a valid machine token. It carries the `sub` and nothing
+   else: profile claims like email are not in an access token — they live in
+   the ID token and at `/userinfo` — so a service that needs a profile fetches
+   one rather than trusting a forwarded header.
 3. **Authorizer itself.** The only holder of the signing private key and the
    admin secret. Services hold nothing but their own `client_id`/`client_secret`.
 

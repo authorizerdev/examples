@@ -33,8 +33,14 @@ app.post("/api/orders", requireAuth(), async (req, res) => {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
       // User context, asserted by the gateway after verifying the user JWT.
+      //
+      // `sub` is the only identity claim an access token is required to
+      // carry — profile claims like email live in the ID token and at
+      // /userinfo, and Authorizer does not put them here. Downstream
+      // services should key on the id; fetch the profile from /userinfo if
+      // they genuinely need one, rather than trusting a header that only
+      // sometimes has a value.
       "X-User-Id": req.auth.sub,
-      "X-User-Email": req.auth.email || "",
     },
     body: JSON.stringify(req.body),
   });

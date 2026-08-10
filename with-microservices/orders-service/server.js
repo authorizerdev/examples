@@ -33,7 +33,6 @@ app.post("/orders", requireAuth({ machine: true, scope: "orders:write" }), async
   const order = {
     id: `ord_${orders.length + 1}`,
     user_id: userId,
-    user_email: req.headers["x-user-email"] || null,
     item: req.body.item || "unknown",
     amount_cents: req.body.amount_cents ?? 0,
     status: "pending",

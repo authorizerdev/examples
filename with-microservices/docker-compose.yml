@@ -15,7 +15,12 @@ services:
     image: quay.io/authorizer/authorizer:local # placeholder — build from main
     command:
       - --database-type=sqlite
-      - --database-url=/data/authorizer.db
+      # The image runs as uid 1000 (`authorizer`). A named volume mounted at a
+      # path the image does not already own is created root-owned, and the
+      # process then cannot create the SQLite file. Keep the database inside
+      # /authorizer, which the image chowns to that uid. Demo-only: the data
+      # goes away with the container.
+      - --database-url=/authorizer/authorizer.db
       # RS256 requires an explicit keypair (the server refuses to boot without
       # one). This is the SAME well-known dev keypair `make dev` uses in the
       # server repo — public knowledge, demo only, NEVER deploy it.
@@ -66,8 +71,6 @@ services:
       - --allowed-origins=authorizer:8080,localhost:8080
     ports:
       - "8080:8080"
-    volumes:
-      - authorizer-data:/data
 
   setup:
     image: node:22-alpine
@@ -123,6 +126,3 @@ services:
     # no ports: — internal only
     depends_on:
       - authorizer
-
-volumes:
-  authorizer-data:
