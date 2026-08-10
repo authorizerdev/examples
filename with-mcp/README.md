@@ -147,32 +147,46 @@ that is RFC 8707 doing its job.
 
 ## Bonus: Authorizer's own built-in MCP server
 
-Authorizer also *ships* an MCP server of its own: `authorizer mcp`, a
-**stdio-only** subcommand exposing a curated read-only toolset — `meta`,
-`profile`, `check_permissions`, `list_permissions` — so an MCP host (Claude
-Code, Claude Desktop, Cursor) can ask fine-grained authorization questions
-("can this user view document:1?") before acting. It is deliberately not an
-HTTP server; the host spawns it as a child process. Example `.mcp.json`:
+Authorizer also *ships* an MCP server of its own, exposing a curated read-only
+toolset — `meta`, `profile`, `check_permissions`, `list_permissions` — so an MCP
+host can ask fine-grained authorization questions ("can this user view
+document:1?") before acting.
 
-```json
-{
-  "mcpServers": {
-    "authorizer": {
-      "command": "authorizer",
-      "args": [
-        "mcp",
-        "--client-id", "YOUR_CLIENT_ID",
-        "--database-type", "sqlite",
-        "--database-url", "auth.db",
-        "--mcp-bearer", "USER_ACCESS_TOKEN",
-        "--mcp-authorizer-url", "http://localhost:8080"
-      ]
-    }
-  }
-}
+Run it on the server you already run:
+
+```sh
+authorizer --url https://auth.example.com --mcp-enabled   # ...your other flags
 ```
+
+`--url` is required with `--mcp-enabled`. It is what the audience of every token
+presented at `/mcp` is checked against, and the server refuses to start without
+it.
+
+Then point a client at it:
+
+```sh
+claude mcp add --transport http authorizer https://auth.example.com/mcp
+```
+
+The client discovers everything else on its own: an unauthenticated call returns
+`401` with a `WWW-Authenticate` header naming the RFC 9728 metadata document,
+which names Authorizer as the authorization server. The OAuth flow that follows
+is the same one this example uses above — including the `resource` parameter,
+which here is `https://auth.example.com/mcp`.
+
+Register an OAuth client first (dashboard → **Identity → Clients**) and give the
+client its ID; Authorizer does not yet support RFC 7591 dynamic client
+registration. For a Claude.ai custom connector the redirect URI is
+`https://claude.ai/api/mcp/auth_callback`; for Claude Code, register both
+`http://localhost/callback` and `http://127.0.0.1/callback` — native apps bind
+an ephemeral port, which RFC 8252 §7.3 requires the server to ignore.
+
+> The older `authorizer mcp` stdio subcommand still works but is **deprecated**
+> and will be removed in 2.5.0. It ran a second copy of the whole server and
+> served exactly one user per process, since its identity was a single
+> `--mcp-bearer` flag.
 
 See the [MCP Server docs](https://docs.authorizer.dev/core/mcp) for details.
 So: **this example** = protecting *your* MCP tools with Authorizer-issued
-tokens; **`authorizer mcp`** = giving a model safe access to *Authorizer's*
+tokens; **`--mcp-enabled`** = giving a model safe access to *Authorizer's*
 identity/permission data.

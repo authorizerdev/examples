@@ -173,6 +173,14 @@ agent was never granted it, so the agent cannot — no matter how the question i
 phrased, because the decision is made server-side from the token, not from the
 conversation. Prompt injection has nothing to work with.
 
+> **Why this example still uses `authorizer mcp` (stdio).** Authorizer now also
+> serves MCP over HTTP (`--mcp-enabled`, see `with-mcp`), and that is the
+> transport to use for anything new. This example cannot move yet: it drives the
+> tools with an RFC 8693 **delegated** token, and the HTTP surface deliberately
+> does not accept those — delegated tokens are stateless, so they fail the
+> session check the HTTP path requires, and widening it is a separate decision.
+> Until that lands, agent-delegation over MCP is a stdio-only story.
+
 ### Prove it without a model in the loop
 
 ```sh
