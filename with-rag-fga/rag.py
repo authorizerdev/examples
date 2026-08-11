@@ -26,7 +26,6 @@ from authorizer import (
     AuthorizerClient,
     CheckPermissionsRequest,
     ListPermissionsRequest,
-    LoginRequest,
     PermissionCheckInput,
 )
 from authorizer.exceptions import AuthorizerConnectionError, AuthorizerError
@@ -34,10 +33,10 @@ from authorizer.exceptions import AuthorizerConnectionError, AuthorizerError
 from common import (
     AUTHORIZER_CLIENT_ID,
     AUTHORIZER_URL,
-    DEMO_PASSWORD,
     DOCS_DIR,
     DOCUMENT_TYPE,
     PERSONAS,
+    login_persona,
     VIEW_RELATION,
     require,
 )
@@ -212,7 +211,7 @@ def main() -> None:
     try:
         email = PERSONAS[args.user]
         try:
-            login = client.login(LoginRequest(email=email, password=DEMO_PASSWORD))
+            login = login_persona(client, email)
         except (AuthorizerError, AuthorizerConnectionError) as e:
             raise SystemExit(
                 f"error: login failed for {email}: {e}\n"

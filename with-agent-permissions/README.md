@@ -67,8 +67,8 @@ non-zero if any of them does not hold.
 
 ## Turning it on: declare `type agent`
 
-**There is no flag.** Declaring `type agent` in your authorization model *is*
-the opt-in:
+**There is no enabling flag.** Declaring `type agent` in your authorization
+model *is* the opt-in:
 
 ```dsl
 model
@@ -90,9 +90,13 @@ deny *every* delegated request: a total authorization outage rather than a
 graceful degradation. Auto-detection makes that state unreachable.
 
 Section 8 of the demo shows the other side of that trade: rewrite the model
-without `type agent` and the same agent immediately inherits Alice's full
-authority again. Deployments that never opt in keep their existing behaviour
-byte-for-byte, and that state is counted as
+without `type agent` and every delegated check is **denied**, because the
+agent half of `perms(agent) ∩ perms(user)` cannot be evaluated and a check
+that cannot be evaluated is not a check that passes. Authorizing as the user
+alone would hand the agent Alice's full authority — the Confused Deputy this
+feature exists to prevent — so it is not the default. Deployments migrating
+from 2.3.x can set `--fga-allow-unconstrained-agents` to restore exactly that
+old behaviour; either way the state is counted as
 `authorizer_fga_delegated_checks_total{outcome="not_enforced"}` so you can alert
 on agent traffic arriving unconstrained.
 
@@ -168,6 +172,14 @@ The second one is the whole point. The delegating user **can** read payroll. The
 agent was never granted it, so the agent cannot — no matter how the question is
 phrased, because the decision is made server-side from the token, not from the
 conversation. Prompt injection has nothing to work with.
+
+> **Why this example still uses `authorizer mcp` (stdio).** Authorizer now also
+> serves MCP over HTTP (`--mcp-enabled`, see `with-mcp`), and that is the
+> transport to use for anything new. This example cannot move yet: it drives the
+> tools with an RFC 8693 **delegated** token, and the HTTP surface deliberately
+> does not accept those — delegated tokens are stateless, so they fail the
+> session check the HTTP path requires, and widening it is a separate decision.
+> Until that lands, agent-delegation over MCP is a stdio-only story.
 
 ### Prove it without a model in the loop
 

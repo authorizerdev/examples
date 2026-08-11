@@ -8,7 +8,9 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-SERVER_DIR="$DIR/../../authorizer"
+# Override to run a specific checkout, e.g. a release worktree:
+#   SERVER_DIR=/path/to/authorizer@2.4.0-rc.18 ./run-server.sh
+SERVER_DIR="${SERVER_DIR:-$DIR/../../authorizer}"
 
 # Override when :8080 is taken, e.g. PORT=8098 ./run-server.sh
 # (recipe scripts then need AUTHORIZER_URL=http://localhost:8098)

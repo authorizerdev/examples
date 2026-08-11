@@ -17,7 +17,12 @@ services:
       - "8080:8080"
     command:
       - --database-type=sqlite
-      - --database-url=/data/authorizer.db
+      # The image runs as uid 1000 (`authorizer`). A named volume mounted at a
+      # path the image does not already own is created root-owned, and the
+      # process then cannot create the SQLite file. Keep the database inside
+      # /authorizer, which the image chowns to that uid. Demo-only: the data
+      # goes away with the container.
+      - --database-url=/authorizer/authorizer.db
       - --jwt-type=HS256
       # Obviously-fake dev secrets — change all of these outside a local demo.
       - --jwt-secret=dev-jwt-secret-CHANGE-ME
@@ -26,8 +31,6 @@ services:
       - --client-id=00000000-demo-client-id-000000000000
       - --client-secret=demo-client-secret-CHANGE-ME
       - --allowed-origins=localhost:8080,localhost:8090
-    volumes:
-      - authorizer-data:/data
 
   keycloak:
     image: quay.io/keycloak/keycloak:latest
@@ -45,6 +48,3 @@ services:
       # KC_HOSTNAME: https://<your-tunnel>.ngrok-free.app
     ports:
       - "8082:8082"
-
-volumes:
-  authorizer-data:

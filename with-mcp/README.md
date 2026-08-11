@@ -147,32 +147,56 @@ that is RFC 8707 doing its job.
 
 ## Bonus: Authorizer's own built-in MCP server
 
-Authorizer also *ships* an MCP server of its own: `authorizer mcp`, a
-**stdio-only** subcommand exposing a curated read-only toolset — `meta`,
-`profile`, `check_permissions`, `list_permissions` — so an MCP host (Claude
-Code, Claude Desktop, Cursor) can ask fine-grained authorization questions
-("can this user view document:1?") before acting. It is deliberately not an
-HTTP server; the host spawns it as a child process. Example `.mcp.json`:
+Authorizer also *ships* an MCP server of its own, exposing a curated read-only
+toolset — `meta`, `profile`, `check_permissions`, `list_permissions` — so an MCP
+host can ask fine-grained authorization questions ("can this user view
+document:1?") before acting.
 
-```json
-{
-  "mcpServers": {
-    "authorizer": {
-      "command": "authorizer",
-      "args": [
-        "mcp",
-        "--client-id", "YOUR_CLIENT_ID",
-        "--database-type", "sqlite",
-        "--database-url", "auth.db",
-        "--mcp-bearer", "USER_ACCESS_TOKEN",
-        "--mcp-authorizer-url", "http://localhost:8080"
-      ]
-    }
-  }
-}
+Run it on the server you already run:
+
+```sh
+authorizer --url https://auth.example.com --mcp-enabled   # ...your other flags
 ```
+
+`--url` is required with `--mcp-enabled`. It is what the audience of every token
+presented at `/mcp` is checked against, and the server refuses to start without
+it.
+
+Then point a client at it — with a **static token**, which is the only path
+verified to work today:
+
+```sh
+# Create a service account: dashboard → Identity → Clients
+# Mint a token bound to the MCP resource (the `resource` param is the part
+# people miss — without it the audience is the client id and /mcp rejects it)
+ACCESS_TOKEN=$(curl -s -X POST https://auth.example.com/oauth/token \
+  -d grant_type=client_credentials \
+  -d client_id=$CLIENT_ID -d client_secret=$CLIENT_SECRET \
+  -d scope=openid -d resource=https://auth.example.com/mcp | jq -r .access_token)
+
+claude mcp add --transport http authorizer https://auth.example.com/mcp \
+  --header "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+`claude mcp list` then reports **✔ Connected**.
+
+> **The OAuth flow does not work with Claude Code yet.** Tested against Claude
+> Code 2.1.226, it refuses the server outright:
+> *"Incompatible auth server: does not support dynamic client registration"* —
+> and it does not fall back to a manually-supplied client id. Authorizer has
+> neither RFC 7591 DCR nor Client ID Metadata Documents; adding one of them is
+> what will make the browser OAuth path reachable.
+
+Note the static token identifies the **service account**, not a human, so
+`profile` returns nothing useful and permission checks resolve to
+`service_account:<client_id>`.
+
+> The older `authorizer mcp` stdio subcommand still works but is **deprecated**
+> and will be removed in 2.5.0. It ran a second copy of the whole server and
+> served exactly one user per process, since its identity was a single
+> `--mcp-bearer` flag.
 
 See the [MCP Server docs](https://docs.authorizer.dev/core/mcp) for details.
 So: **this example** = protecting *your* MCP tools with Authorizer-issued
-tokens; **`authorizer mcp`** = giving a model safe access to *Authorizer's*
+tokens; **`--mcp-enabled`** = giving a model safe access to *Authorizer's*
 identity/permission data.

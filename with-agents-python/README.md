@@ -21,17 +21,12 @@ upstream hop dropped (`invalid_scope`), and delegated tokens live 5 minutes.
 ## Quickstart
 
 Requires a server built from main (`make dev` in the server repo → :8080)
-and the **unreleased** Python SDK from local main, checked out next to this
-repo. `authorizer-py` 0.3.0rc3 is on PyPI and does have token exchange and
-`skip_mfa_setup`, but not the loopback cookie jar that the MFA offer needs:
-the server marks the `mfa_session` cookie `Secure` even over plain http, so
-against a local server the released SDK drops it and `skip_mfa_setup` fails
-with `invalid session`. Switch to `pip install --pre authorizer-py` once
-that fix ships:
+and the Authorizer Python SDK (token-exchange support ships in
+`authorizer-py>=0.3.0rc4`):
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e ../../authorizer-python
+.venv/bin/pip install -r requirements.txt
 
 export AUTHORIZER_CLIENT_ID=kbyuFDidLLm280LIwVFiazOqjO3ty8KH   # make-dev default
 export AUTHORIZER_ADMIN_SECRET=admin

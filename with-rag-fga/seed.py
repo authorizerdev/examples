@@ -35,8 +35,7 @@ from authorizer import (
     FgaTupleInput,
     FgaWriteModelRequest,
     FgaWriteTuplesRequest,
-    LoginRequest,
-    PaginatedRequest,
+    ListUsersRequest,
     PaginationRequest,
     SignUpRequest,
 )
@@ -48,6 +47,7 @@ from common import (
     AUTHORIZER_URL,
     DEMO_PASSWORD,
     PERSONAS,
+    login_persona,
     require,
 )
 
@@ -94,6 +94,7 @@ def ensure_user(
     admin: AuthorizerAdminClient, client: AuthorizerClient, email: str
 ) -> str:
     """Sign the user up (tolerating 'already exists'), return their user id."""
+    created = True
     try:
         res = client.signup(
             SignUpRequest(
@@ -103,17 +104,21 @@ def ensure_user(
         if res.user and res.user.id:
             print(f"  created user {email}")
             return res.user.id
+        # Signup succeeded but withheld the user: since 2.4.0 an MFA setup is
+        # offered first, and nothing is authenticated until it is settled. The
+        # account exists; resolve its id below.
     except AuthorizerError as signup_error:
+        created = False
         # Signup errors are deliberately generic. A successful login with the
         # demo password is the reliable "already seeded" signal.
         try:
-            client.login(LoginRequest(email=email, password=DEMO_PASSWORD))
+            login_persona(client, email)
         except AuthorizerError:
             raise SystemExit(f"signup failed for {email}: {signup_error}") from None
-    users = admin.users(PaginatedRequest(pagination=PaginationRequest(limit=100)))
+    users = admin.users(ListUsersRequest(pagination=PaginationRequest(limit=100)))
     for user in users.users:
         if user.email == email:
-            print(f"  user {email} already exists")
+            print(f"  {'created' if created else 'found existing'} user {email}")
             return user.id
     raise SystemExit(f"could not resolve id for existing user {email}")
 

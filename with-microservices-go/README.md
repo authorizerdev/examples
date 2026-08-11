@@ -115,7 +115,3 @@ demo.sh          end-to-end happy path + negative paths
 All services use structured JSON logging (`log/slog`) with a propagated
 `X-Request-ID`, context propagation on outbound calls, and graceful shutdown
 on SIGINT/SIGTERM.
-
-> **Note**: `go.mod` uses a `replace` pointing at a local checkout of
-> authorizer-go, which carries the `client_credentials` support in
-> `GetToken`. Drop the `replace` once the next authorizer-go release ships.

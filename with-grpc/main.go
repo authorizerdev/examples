@@ -16,13 +16,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
 
-	authorizerv1 "github.com/authorizerdev/examples/with-grpc/gen/authorizer/v1"
+	authorizerv1 "github.com/authorizerdev/authorizer-proto-go/authorizer/v1"
 )
 
 func main() {
@@ -62,17 +63,43 @@ func main() {
 	if err != nil {
 		log.Fatalf("signup: %v", err)
 	}
-	fmt.Printf("1. Signup      : %s (user id %s)\n", signup.Message, signup.User.GetId())
+	// With MFA offered the response carries the message only — no token and no
+	// user, because nothing is authenticated until the offer is settled.
+	fmt.Printf("1. Signup      : %s\n", signup.Message)
 
 	// --- 2. Public: Login → access token --------------------------------
+	// Capture the response metadata: since 2.4.0 MFA is on by default, so a
+	// brand-new user is OFFERED an MFA setup and the token is WITHHELD until
+	// they enrol a factor or decline. Declining is identified by the
+	// `mfa_session` cookie the login response set. gRPC has no cookie jar —
+	// the server serialises cookies as `set-cookie` response metadata, and a
+	// pure-gRPC caller replays them as `cookie` request metadata by hand.
+	var loginMD metadata.MD
 	login, err := user.Login(baseCtx, &authorizerv1.LoginRequest{
 		Email:    email,
 		Password: password,
-	})
+	}, grpc.Header(&loginMD))
 	if err != nil {
 		log.Fatalf("login: %v", err)
 	}
-	fmt.Printf("2. Login       : got access token (expires in %ds)\n", login.ExpiresIn)
+
+	if login.AccessToken == "" {
+		fmt.Printf("2. Login       : %s — declining it\n", login.Message)
+		session := mfaSessionFrom(loginMD)
+		if session == "" {
+			log.Fatal("login: mfa setup offered but no mfa_session in the response metadata")
+		}
+		// Fails under --enforce-mfa, where declining is not permitted; a real
+		// app would drive the TOTP/OTP setup screen instead.
+		login, err = user.SkipMfaSetup(
+			metadata.AppendToOutgoingContext(baseCtx, "cookie", session),
+			&authorizerv1.SkipMfaSetupRequest{Email: email},
+		)
+		if err != nil {
+			log.Fatalf("skip mfa setup: %v", err)
+		}
+	}
+	fmt.Printf("   Access token : got one (expires in %ds)\n", login.ExpiresIn)
 
 	// --- 3. Authenticated user call: Profile with bearer metadata -------
 	authedCtx := metadata.AppendToOutgoingContext(baseCtx,
@@ -108,4 +135,18 @@ func main() {
 	// of step 3 with curl:
 	fmt.Printf("\n6. REST equivalent of Profile (same handler via grpc-gateway):\n"+
 		"   curl -H 'Authorization: Bearer <access_token>' %s/v1/profile\n", *httpURL)
+}
+
+// mfaSessionFrom picks the `mfa_session` cookie out of a response's
+// `set-cookie` metadata and returns it as a Cookie header value. Each cookie
+// arrives as its own entry, in ordinary Set-Cookie syntax.
+func mfaSessionFrom(md metadata.MD) string {
+	for _, line := range md.Get("set-cookie") {
+		for _, c := range (&http.Response{Header: http.Header{"Set-Cookie": {line}}}).Cookies() {
+			if c.Name == "mfa_session" {
+				return c.Name + "=" + c.Value
+			}
+		}
+	}
+	return ""
 }
