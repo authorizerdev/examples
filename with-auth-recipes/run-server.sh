@@ -23,6 +23,7 @@ exec go run main.go \
   --grpc-port="$((PORT + 1000))" \
   --database-type=sqlite \
   --database-url="$DIR/.recipes.db" \
+  --url="http://localhost:$PORT" \
   --admin-secret=admin \
   --client-id=kbyuFDidLLm280LIwVFiazOqjO3ty8KH \
   --client-secret=60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa \
