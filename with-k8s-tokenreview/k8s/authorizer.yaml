@@ -37,6 +37,8 @@ spec:
           args:
             - --database-type=sqlite
             - --database-url=/data/authorizer.db
+            # Required as of 2.4.0 — the server exits at boot without it.
+            - --url=http://localhost:8080
             - --admin-secret=admin
             - --client-id=kbyuFDidLLm280LIwVFiazOqjO3ty8KH
             - --client-secret=60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa
