@@ -187,7 +187,6 @@ function mcpArgs(bearer) {
     `--client-secret=${CLIENT_SECRET}`,
     `--url=${BASE}`,
     `--mcp-bearer=${bearer}`,
-    `--mcp-authorizer-url=${BASE}`,
   ];
 }
 
