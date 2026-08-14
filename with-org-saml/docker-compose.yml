@@ -22,6 +22,8 @@ services:
       # /authorizer, which the image chowns to that uid. Demo-only: the data
       # goes away with the container.
       - --database-url=/authorizer/authorizer.db
+      # Required as of 2.4.0 — the server exits at boot without it.
+      - --url=http://localhost:8080
       - --jwt-type=HS256
       # Obviously-fake dev secrets — change all of these outside a local demo.
       - --jwt-secret=dev-jwt-secret-CHANGE-ME
