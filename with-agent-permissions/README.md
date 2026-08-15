@@ -173,13 +173,16 @@ agent was never granted it, so the agent cannot — no matter how the question i
 phrased, because the decision is made server-side from the token, not from the
 conversation. Prompt injection has nothing to work with.
 
-> **Why this example still uses `authorizer mcp` (stdio).** Authorizer now also
-> serves MCP over HTTP (`--mcp-enabled`, see `with-mcp`), and that is the
-> transport to use for anything new. This example cannot move yet: it drives the
-> tools with an RFC 8693 **delegated** token, and the HTTP surface deliberately
-> does not accept those — delegated tokens are stateless, so they fail the
-> session check the HTTP path requires, and widening it is a separate decision.
-> Until that lands, agent-delegation over MCP is a stdio-only story.
+> **This runs over the remote MCP transport** (`--mcp-enabled`, which
+> `run-server.sh` passes), not the deprecated `authorizer mcp` stdio
+> subcommand. The tools are served by the same process that minted the token,
+> and every request carries its own credential.
+>
+> The delegated token names **`<url>/mcp`** as its RFC 8707 `resource`, not the
+> bare `<url>`. That is the part people get wrong: the audience decides which
+> single surface a token opens, and a token bound to the bare URL authenticates
+> GraphQL/REST/gRPC while being refused at `/mcp` — and vice versa. A 401 from
+> `/mcp` is almost always this, not a permissions problem.
 
 ### Prove it without a model in the loop
 
@@ -187,24 +190,33 @@ conversation. Prompt injection has nothing to work with.
 node mcp-agent.mjs --verify
 ```
 
-This spawns the real `authorizer mcp` process and speaks the same JSON-RPC an
-MCP host speaks, asserting the intersection holds through the tool surface —
-then repeats the identical calls with the **user's own** token as a control:
+This speaks the same JSON-RPC over the same Streamable HTTP transport a real
+MCP host uses, asserting the intersection holds through the tool surface:
 
 ```
-== Driving the real MCP server over stdio (delegated token) ==
+== Driving the real MCP server over HTTP (delegated token) ==
   ✓ check_permissions q4-plan -> allowed
   ✓ check_permissions payroll -> DENIED
   ✓ list_permissions includes q4-plan
   ✓ list_permissions EXCLUDES payroll
 
-== Control: the same tools with the USER's own token ==
+== The user's ordinary login token cannot open /mcp ==
+  ✓ a login token is refused at /mcp
+
+== Control: the same check as the USER, over /graphql ==
   ✓ check_permissions q4-plan -> allowed
   ✓ check_permissions payroll -> allowed (the user CAN see it)
 ```
 
-Same user, same tuples, same tools. The only difference is that the agent is in
-the loop — and payroll went from allowed to denied.
+Same user, same tuples, same permission API. The only difference is that the
+agent is in the loop — and payroll went from allowed to denied.
+
+The control runs over `/graphql` rather than `/mcp` deliberately: the user's
+ordinary login token is *refused* at `/mcp`, which the run asserts just above
+it. That is the audience boundary working, and it is why the agent's token had
+to name `<url>/mcp` as its resource. The decision being compared is the same one
+either way — the MCP `check_permissions` tool dispatches to exactly the
+operation the GraphQL query calls.
 
 ## Test it with a real model you call yourself (Gemini)
 
@@ -248,14 +260,18 @@ tuples. There is no wording that grants an agent a permission it was not given.
 
 ### Things that will bite you
 
-- **`authorizer mcp` is a separate process.** It opens the database directly and
-  validates the bearer itself, so it needs the *same* `--database-*`, `--jwt-*`
-  and `--encryption-key` flags as the server that minted the token. Point it at
-  a different database or a different JWT secret and every tool call returns
-  `Unauthenticated` — which looks like a permissions bug and is not one.
-- **A delegated token lives 5 minutes.** Re-run `mcp-agent.mjs` to mint a fresh
-  one. Don't spend that budget compiling: build the binary once
-  (`go build -o .agent-demo-bin .`) rather than using `go run` per spawn.
+- **The `resource` must be `<url>/mcp`, not `<url>`.** This is the single most
+  common mistake. The audience binds a token to exactly one surface, so a token
+  exchanged with `resource=<url>` is refused at `/mcp` with a 401 that reads
+  like a permissions bug and is not one. Check the `aud` claim first.
+- **The server needs `--mcp-enabled` and `--url`.** `run-server.sh` passes both.
+  Without `--url` the server refuses to start with MCP enabled at all, because
+  the resource identifier every token is checked against would otherwise be
+  derived from request headers the caller controls.
+- **A delegated token lives 5 minutes and has no refresh token.** A 401 after a
+  few minutes of idling is expiry, not misconfiguration — re-run
+  `mcp-agent.mjs` to mint a fresh one. An MCP client cannot refresh its way out
+  of this; the agent has to redo the RFC 8693 exchange.
 - **Check what is actually listening on :8080.** A stray `make dev` from another
   terminal will answer health checks while `run-server.sh` silently fails to
   bind, and you will be testing a different deployment than you think.
