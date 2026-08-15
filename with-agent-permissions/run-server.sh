@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 # Runs a local Authorizer configured for this example.
 #
-# It exists for the MCP path (mcp-agent.mjs): `authorizer mcp` is a SEPARATE
-# process that must be given the same database and JWT settings as the server
-# that minted the token, and reproducing `make dev`'s multi-line RSA keys on a
-# command line is miserable. HS256 with a short secret keeps that command
-# copy-pasteable.
+# It exists for the MCP path (mcp-agent.mjs), which needs --mcp-enabled and a
+# --url the MCP resource identifier can be derived from. `make dev` sets
+# neither, and its multi-line RSA keys are miserable to reproduce on a command
+# line; HS256 with a short secret keeps this copy-pasteable.
 #
 # demo.mjs works against this or against plain `make dev` — it only needs
 # AUTHORIZER_URL.
@@ -36,4 +35,8 @@ exec go run main.go \
   --jwt-type=HS256 \
   --jwt-secret=insecure-local-agent-demo-secret \
   --encryption-key=insecure-local-agent-demo-encryption-key \
-  --url="http://localhost:$PORT"
+  --url="http://localhost:$PORT" \
+  `# Serves the MCP tools at POST <url>/mcp, on this same process. --url above` \
+  `# is what makes it legal: every token presented there is checked against` \
+  `# <url>/mcp, so the server refuses to start with --mcp-enabled and no --url.` \
+  --mcp-enabled

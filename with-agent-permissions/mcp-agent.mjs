@@ -10,41 +10,23 @@
 //
 //   node mcp-agent.mjs            setup + print the `claude mcp add` command
 //   node mcp-agent.mjs --verify   the above, then drive the MCP server over
-//                                 stdio and assert the intersection holds
+//                                 HTTP and assert the intersection holds
 //
 // `--verify` is the part worth reading: it speaks the same JSON-RPC an MCP host
 // speaks, so a green run means a real host will see exactly this.
 //
-// Requirements: Node 18+, and the server started by ./run-server.sh (the MCP
-// subcommand is a separate process that needs the same database and JWT flags,
-// which that script keeps short).
-
-import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-import readline from "node:readline";
-
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-// Override to build a specific checkout, e.g. a release worktree. Must be the
-// same checkout run-server.sh started: `authorizer mcp` is a second process
-// against the same database, not a client of the running one.
-const SERVER_DIR = process.env.AUTHORIZER_SERVER_DIR ?? path.resolve(HERE, "../../authorizer");
-const DB_PATH = path.join(HERE, ".agent-demo.db");
-// A DELEGATED TOKEN LIVES 5 MINUTES. `go run` recompiles the whole server on
-// every spawn, which can eat most of that window before the first tool call —
-// the token then fails validation and the failure looks like a permissions bug
-// rather than an expiry. Build once, spawn the binary.
-const BIN_PATH = path.join(HERE, ".agent-demo-bin");
+// Requirements: Node 18+, and the server started by ./run-server.sh, which
+// passes --mcp-enabled. Nothing else: the MCP tools are served by that same
+// process, and this script is an ordinary HTTP client of it.
 
 const BASE = process.env.AUTHORIZER_URL ?? "http://localhost:8080";
 const ADMIN_SECRET = process.env.AUTHORIZER_ADMIN_SECRET ?? "admin";
 const ORIGIN = process.env.AUTHORIZER_ORIGIN ?? BASE;
 
-// Must match run-server.sh — `authorizer mcp` validates the bearer itself.
-const JWT_SECRET = process.env.AUTHORIZER_JWT_SECRET ?? "insecure-local-agent-demo-secret";
-const ENCRYPTION_KEY = process.env.AUTHORIZER_ENCRYPTION_KEY ?? "insecure-local-agent-demo-encryption-key";
-const CLIENT_ID = "kbyuFDidLLm280LIwVFiazOqjO3ty8KH";
-const CLIENT_SECRET = "60Op4HFM0I8ajz0WdiStAbziZ-VFQttXuxixHHs2R7r7-CW8GR79l-mmLqMhc-Sa";
+// The canonical MCP resource identifier. It is `<url>/mcp` — the path is part
+// of the identity, and it is what the delegated token's `aud` must equal and
+// what a client types when adding the connector.
+const MCP_RESOURCE = `${BASE}/mcp`;
 
 const USER_EMAIL = "mcp-agent-demo@example.com";
 const USER_PASSWORD = "McpAgent@Demo123";
@@ -103,6 +85,21 @@ async function settleMfaOffer(auth, setCookies) {
 
 const decodeJwt = (jwt) => JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString());
 
+// check_permissions over /graphql as the given bearer. Same operation the MCP
+// `check_permissions` tool dispatches to — the transports differ, the decision
+// does not. Used for the control run, whose token is a first-party login token
+// and therefore not valid at /mcp.
+async function check(token, object) {
+  const data = await gql(
+    `query ($params: CheckPermissionsInput!) {
+      check_permissions(params: $params) { results { allowed } }
+    }`,
+    { params: { checks: [{ relation: "can_view", object }] } },
+    { Authorization: `Bearer ${token}` }
+  );
+  return data.check_permissions.results[0].allowed;
+}
+
 async function setup() {
   await adminGql(`mutation ($params: FgaWriteModelInput!) { _fga_write_model(params: $params) { id } }`, {
     params: { dsl: MODEL },
@@ -153,9 +150,13 @@ async function setup() {
     },
   });
 
-  // The delegated token names AUTHORIZER as its RFC 8707 resource, which is
-  // what lets it authenticate at Authorizer's own API (and therefore at the
-  // MCP tools, which dispatch to it).
+  // The delegated token names the MCP SERVER as its RFC 8707 resource.
+  //
+  // `${BASE}/mcp`, not `${BASE}`. The audience decides which single surface the
+  // token opens, and the two are not interchangeable: a token bound to the bare
+  // URL authenticates GraphQL/REST/gRPC and is refused at /mcp, while this one
+  // is the exact mirror. Getting it wrong yields a 401 from /mcp that looks like
+  // a permissions bug and is really an audience mismatch.
   const delegated = await oauth({
     grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
     client_id: agent.client_id,
@@ -164,104 +165,73 @@ async function setup() {
     subject_token_type: "urn:ietf:params:oauth:token-type:access_token",
     actor_token: machine.body.access_token,
     actor_token_type: "urn:ietf:params:oauth:token-type:access_token",
-    resource: BASE,
+    resource: MCP_RESOURCE,
   });
   if (delegated.status !== 200) throw new Error(`token exchange: ${JSON.stringify(delegated.body)}`);
 
   return { delegated: delegated.body.access_token, userToken, agent, userId };
 }
 
-// The flags `authorizer mcp` needs. It is a standalone process that opens the
-// database directly and validates the bearer itself, so it needs the same
-// database + JWT settings as the server that minted the token.
-function mcpArgs(bearer) {
-  return [
-    "mcp",
-    "--database-type=sqlite",
-    `--database-url=${DB_PATH}`,
-    "--jwt-type=HS256",
-    `--jwt-secret=${JWT_SECRET}`,
-    "--admin-secret=" + ADMIN_SECRET,
-    `--encryption-key=${ENCRYPTION_KEY}`,
-    `--client-id=${CLIENT_ID}`,
-    `--client-secret=${CLIENT_SECRET}`,
-    `--url=${BASE}`,
-    `--mcp-bearer=${bearer}`,
-  ];
-}
+// -------------------------------------------------------- the MCP HTTP probe --
 
-// ------------------------------------------------------- the MCP stdio probe --
-
-// Speaks the same JSON-RPC an MCP host speaks, over the same stdio transport.
-async function driveMcp(bearer, label) {
-  const child = spawn(BIN_PATH, mcpArgs(bearer), {
-    cwd: SERVER_DIR,
-    stdio: ["pipe", "pipe", "pipe"],
+// Speaks the same JSON-RPC an MCP host speaks, over the same Streamable HTTP
+// transport a real client uses. No subprocess, no second database connection:
+// the tools are served by the server ./run-server.sh already started, and the
+// bearer on each request is what decides who is asking.
+async function mcpRpc(bearer, method, params) {
+  const res = await fetch(MCP_RESOURCE, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json, text/event-stream",
+      Authorization: `Bearer ${bearer}`,
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id: nextRpcId++, method, ...(params ? { params } : {}) }),
   });
-  const rl = readline.createInterface({ input: child.stdout });
-  const pending = new Map();
-  let nextId = 1;
-
-  rl.on("line", (line) => {
-    let msg;
-    try {
-      msg = JSON.parse(line);
-    } catch {
-      return; // the server also logs non-JSON lines
-    }
-    if (msg.id && pending.has(msg.id)) {
-      const { resolve, reject } = pending.get(msg.id);
-      pending.delete(msg.id);
-      msg.error ? reject(new Error(JSON.stringify(msg.error))) : resolve(msg.result);
-    }
-  });
-
-  const call = (method, params) =>
-    new Promise((resolve, reject) => {
-      const id = nextId++;
-      pending.set(id, { resolve, reject });
-      child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, ...(params ? { params } : {}) }) + "\n");
-      setTimeout(() => pending.has(id) && reject(new Error(`timeout on ${method}`)), 60000);
-    });
-
-  try {
-    await call("initialize", {
-      protocolVersion: "2025-06-18",
-      capabilities: {},
-      clientInfo: { name: "with-agent-permissions", version: "1.0" },
-    });
-    child.stdin.write(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }) + "\n");
-
-    const toolCall = async (name, args) => {
-      const res = await call("tools/call", { name, arguments: args });
-      return JSON.parse(res.content[0].text);
-    };
-
-    const check = await toolCall("check_permissions", {
-      checks: [
-        { relation: "can_view", object: DOC_PLAN },
-        { relation: "can_view", object: DOC_PAYROLL },
-      ],
-    });
-    const list = await toolCall("list_permissions", { relation: "can_view", object_type: "document" });
-    return {
-      label,
-      plan: check.results[0].allowed,
-      payroll: check.results[1].allowed,
-      objects: list.objects,
-    };
-  } finally {
-    child.kill();
+  if (res.status === 401) {
+    // The 401 IS the protocol here: it carries the RFC 9728 pointer a fresh
+    // client follows to discover where to authenticate. For this script it
+    // almost always means the token's audience is not `${BASE}/mcp`, or the
+    // 5-minute delegated token expired — a delegated token has no refresh
+    // token, so the fix is to re-run, not to refresh.
+    throw new Error(
+      `401 from ${MCP_RESOURCE} (${res.headers.get("www-authenticate") ?? "no challenge"}). ` +
+        `Is the server running with --mcp-enabled, and is the token still fresh?`
+    );
   }
+  const body = await res.json();
+  if (body.error) throw new Error(JSON.stringify(body.error));
+  return body.result;
 }
 
-// Builds the server binary once. Spawning `go run` per MCP process would
-// recompile every time and burn the delegated token's short TTL.
-function buildBinary() {
-  return new Promise((resolve, reject) => {
-    const b = spawn("go", ["build", "-o", BIN_PATH, "."], { cwd: SERVER_DIR, stdio: "inherit" });
-    b.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`go build exited ${code}`))));
+let nextRpcId = 1;
+
+async function driveMcp(bearer, label) {
+  await mcpRpc(bearer, "initialize", {
+    protocolVersion: "2025-06-18",
+    capabilities: {},
+    clientInfo: { name: "with-agent-permissions", version: "1.0" },
   });
+
+  const toolCall = async (name, args) => {
+    const res = await mcpRpc(bearer, "tools/call", { name, arguments: args });
+    if (res.isError) throw new Error(`${name}: ${res.content?.[0]?.text ?? "tool error"}`);
+    return JSON.parse(res.content[0].text);
+  };
+
+  const check = await toolCall("check_permissions", {
+    checks: [
+      { relation: "can_view", object: DOC_PLAN },
+      { relation: "can_view", object: DOC_PAYROLL },
+    ],
+  });
+  const list = await toolCall("list_permissions", { relation: "can_view", object_type: "document" });
+  return {
+    label,
+    plan: check.results[0].allowed,
+    payroll: check.results[1].allowed,
+    objects: list.objects,
+  };
 }
 
 // ------------------------------------------------------------------- main --
@@ -272,10 +242,6 @@ const expect = (label, actual, wanted) => {
   if (!ok) failures++;
   console.log(`  ${ok ? "✓" : "✗"} ${label}${ok ? "" : `  (got ${JSON.stringify(actual)}, want ${JSON.stringify(wanted)})`}`);
 };
-
-// Build BEFORE minting, so the delegated token starts its 5-minute life with
-// the slow part already done.
-if (process.argv.includes("--verify")) await buildBinary();
 
 const { delegated, userToken, agent, userId } = await setup();
 
@@ -295,7 +261,15 @@ if (process.argv.includes("--emit-config")) {
   writeFileSync(
     out,
     JSON.stringify(
-      { mcpServers: { "authorizer-agent": { command: BIN_PATH, args: mcpArgs(delegated) } } },
+      {
+        mcpServers: {
+          "authorizer-agent": {
+            type: "http",
+            url: MCP_RESOURCE,
+            headers: { Authorization: `Bearer ${delegated}` },
+          },
+        },
+      },
       null,
       2
     )
@@ -304,9 +278,8 @@ if (process.argv.includes("--emit-config")) {
   console.log(JSON.stringify({ docPlan: DOC_PLAN, docPayroll: DOC_PAYROLL, userId, agentClientId: agent.client_id }));
 } else if (!process.argv.includes("--verify")) {
   console.log(`\n== Register the agent's MCP server with Claude Code ==\n`);
-  console.log(`claude mcp add authorizer-agent -- \\`);
-  console.log(`  ${BIN_PATH} ${mcpArgs(delegated).join(" \\\n  ")}\n`);
-  console.log(`(build it first: cd ${SERVER_DIR} && go build -o ${BIN_PATH} .)\n`);
+  console.log(`claude mcp add --transport http authorizer-agent ${MCP_RESOURCE} \\`);
+  console.log(`  --header "Authorization: Bearer ${delegated}"\n`);
   console.log(`Then ask the agent, in plain language:`);
   console.log(`  "Can you view ${DOC_PLAN}?"       -> the tool answers allowed`);
   console.log(`  "Can you view ${DOC_PAYROLL}?"   -> the tool answers DENIED`);
@@ -317,17 +290,40 @@ if (process.argv.includes("--emit-config")) {
   console.log(`\nThe token expires in 5 minutes; re-run this script to mint a fresh one.`);
   console.log(`Run with --verify to prove all of the above without a model in the loop.`);
 } else {
-  console.log(`\n== Driving the real MCP server over stdio (delegated token) ==`);
+  console.log(`\n== Driving the real MCP server over HTTP (delegated token) ==`);
   const asAgent = await driveMcp(delegated, "delegated");
   expect("check_permissions q4-plan -> allowed", asAgent.plan, true);
   expect("check_permissions payroll -> DENIED", asAgent.payroll, false);
   expect("list_permissions includes q4-plan", asAgent.objects.includes(DOC_PLAN), true);
   expect("list_permissions EXCLUDES payroll", asAgent.objects.includes(DOC_PAYROLL), false);
 
-  console.log(`\n== Control: the same tools with the USER's own token ==`);
-  const asUser = await driveMcp(userToken, "user");
-  expect("check_permissions q4-plan -> allowed", asUser.plan, true);
-  expect("check_permissions payroll -> allowed (the user CAN see it)", asUser.payroll, true);
+  // The audience boundary, from the client side. Alice's ordinary login token
+  // authenticates /graphql perfectly well (the control below uses it), and it
+  // opens nothing here — a token is valid at exactly the one surface its `aud`
+  // names. This is why the delegated token above had to name `${BASE}/mcp` as
+  // its resource rather than `${BASE}`.
+  console.log(`\n== The user's ordinary login token cannot open /mcp ==`);
+  let refused = false;
+  try {
+    await mcpRpc(userToken, "initialize", {
+      protocolVersion: "2025-06-18",
+      capabilities: {},
+      clientInfo: { name: "with-agent-permissions", version: "1.0" },
+    });
+  } catch {
+    refused = true;
+  }
+  expect("a login token is refused at /mcp", refused, true);
+
+  // Control: same tuples, same permission API, no agent in the loop. Run over
+  // GraphQL precisely BECAUSE the token above is not accepted at /mcp — the
+  // point being proven is that the agent's presence changes the answer, not
+  // that the transport does.
+  console.log(`\n== Control: the same check as the USER, over /graphql ==`);
+  const userSeesPlan = await check(userToken, DOC_PLAN);
+  const userSeesPayroll = await check(userToken, DOC_PAYROLL);
+  expect("check_permissions q4-plan -> allowed", userSeesPlan, true);
+  expect("check_permissions payroll -> allowed (the user CAN see it)", userSeesPayroll, true);
 
   console.log(
     failures === 0

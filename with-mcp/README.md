@@ -180,12 +180,16 @@ claude mcp add --transport http authorizer https://auth.example.com/mcp \
 
 `claude mcp list` then reports **✔ Connected**.
 
-> **The OAuth flow does not work with Claude Code yet.** Tested against Claude
-> Code 2.1.226, it refuses the server outright:
+> **The OAuth flow needs a self-registration flag turned on.** As of Claude Code
+> 2.1.226 it refuses a server that advertises neither:
 > *"Incompatible auth server: does not support dynamic client registration"* —
-> and it does not fall back to a manually-supplied client id. Authorizer has
-> neither RFC 7591 DCR nor Client ID Metadata Documents; adding one of them is
-> what will make the browser OAuth path reachable.
+> and it does not fall back to a manually-supplied client id. Authorizer ships
+> **both** mechanisms, off by default: Client ID Metadata Documents
+> (`--enable-client-id-metadata-document`, preferred) and RFC 7591 DCR
+> (`--enable-dynamic-client-registration`, for clients that predate CIMD —
+> Claude Code reads `client_id_metadata_document_supported` and still requires a
+> `registration_endpoint`). Enabling DCR does not downgrade anyone: the MCP
+> spec's priority order is pre-registered → CIMD → DCR.
 
 Note the static token identifies the **service account**, not a human, so
 `profile` returns nothing useful and permission checks resolve to
