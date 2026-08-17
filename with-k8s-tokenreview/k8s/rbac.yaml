@@ -5,6 +5,15 @@
 # Authorizer authenticates the TokenReview POST with its own in-cluster
 # ServiceAccount token (mounted at the default path), so the binding targets
 # the `authorizer` ServiceAccount the Deployment runs as.
+# The Namespace is declared here as well as in authorizer.yaml so this file is
+# self-sufficient: the documented apply order puts rbac.yaml first, and a
+# ServiceAccount cannot be created into a namespace that does not exist yet.
+# `kubectl apply` is idempotent, so declaring it twice is safe in either order.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: authorizer-demo
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:

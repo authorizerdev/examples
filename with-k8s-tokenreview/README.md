@@ -65,7 +65,7 @@ Follow `setup.md` top to bottom to run it.
 |-------|-----------|--------------------------------------------|
 | `service_account_id` | `_create_client` → `client.id` | Internal id of the `service_account` client the assertion authenticates as. Only `service_account`-kind clients may use `client_credentials`. |
 | `issuer_url` | `https://kubernetes.default.svc.cluster.local` (kind) | Must equal the token's `iss` **exactly**; globally unique across all trusted issuers. |
-| `key_source_type` | `static_jwks_url` | `oidc_discovery` (fetch `jwks_uri` from `{issuer_url}/.well-known/openid-configuration`) or `static_jwks_url`. `spiffe_bundle_endpoint` is accepted by the API but its fetcher is **not implemented** — do not use it. |
+| `key_source_type` | `static_jwks_url` | `oidc_discovery` (fetch `jwks_uri` from `{issuer_url}/.well-known/openid-configuration`) or `static_jwks_url`. `spiffe_bundle_endpoint` has no fetcher and is **rejected at write time**. |
 | `jwks_url` | public URL of the cluster JWKS | Required for `static_jwks_url`. Fetched SSRF-hardened: private/loopback/link-local addresses rejected, redirects refused, 1 MiB cap, cached 10 min. |
 | `expected_aud` | `http://authorizer.authorizer-demo.svc:8080` | The `aud` the assertion **must** contain exactly. Equals the `audience` in the projected volume. |
 | `subject_claim` | omitted (defaults `sub`) | Claim identifying the workload. |

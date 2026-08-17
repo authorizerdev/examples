@@ -49,8 +49,17 @@ ngrok http 9000                          # note the https://….ngrok…/ URL
 JWKS_URL="https://<your-tunnel>/jwks.json"
 ```
 
-On managed clusters (EKS/GKE/AKS) the issuer URL is already public — use
-`key_source_type: "oidc_discovery"` there and skip this step.
+**This mirror step is only for default-issuer clusters like this kind demo.**
+EKS, GKE and AKS publish a public https issuer with public OIDC discovery by
+default, so there is nothing to mirror: use `key_source_type: "oidc_discovery"`
+and skip straight to step 3. Check which case you are in with the command at
+the top of this step — if `.issuer` is a public URL, you are done here.
+
+If you do run a mirror, **refresh it when the cluster rotates its signing
+keys**. A stale mirror stops validating newly-issued tokens, and one that keeps
+serving a retired key keeps validating tokens it should not. Authorizer caches
+a fetched JWKS for 10 minutes, so its own staleness is bounded — the mirror's
+is yours to manage.
 
 ## 3. Create the service-account client
 
@@ -104,11 +113,16 @@ Honest status, verified against server source:
   `authenticated: true`. It authenticates that call with its own in-cluster
   ServiceAccount token — which is why `k8s/rbac.yaml` binds the `authorizer`
   ServiceAccount to `system:auth-delegator`.
-- **Admin API: NOT settable yet.** Neither `_add_trusted_issuer` nor
-  `_update_trusted_issuer` accepts these two fields, and they are not returned
-  by the queries. Today they can only be set by writing the columns directly in
-  the database. This example ships the RBAC so everything is in place the
-  moment the admin API exposes them.
+- **Admin API: settable.** `_add_trusted_issuer` and `_update_trusted_issuer`
+  both accept `enable_token_review` and `kubernetes_api_server_url`, and both
+  are returned by the queries. (An earlier revision of this file said they were
+  not — that is out of date.) `kubernetes_api_server_url` is validated at write
+  time: required, and `https`, whenever `enable_token_review` is true.
+- **`kubernetes_api_server_url` is security-sensitive.** Authorizer
+  authenticates the TokenReview call with its own in-cluster ServiceAccount
+  token, so whatever host you configure receives that credential. Keep the
+  binding to `system:auth-delegator` (TokenReview only, as in `k8s/rbac.yaml`)
+  so the credential grants nothing else.
 - **SSRF limitation:** the TokenReview call goes through the same
   SSRF-hardened client, so only a publicly-routable apiserver endpoint works
   (managed clusters' public API endpoints). `https://kubernetes.default.svc`
