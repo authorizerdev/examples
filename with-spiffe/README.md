@@ -94,7 +94,7 @@ have), so no tunnel is involved: set `issuer_url`/`jwks_url` to that domain.
 |-------|-----------|--------------------------------------------|
 | `service_account_id` | `_create_client` → `client.id` | Internal id of the `service_account` client the SVID authenticates as. |
 | `issuer_url` | `https://oidc-discovery.demo.example` | Must equal the SVID's `iss` — i.e. `jwt_issuer` in `conf/server/server.conf`. Globally unique. |
-| `key_source_type` | `static_jwks_url` | `static_jwks_url` (the provider's `/keys`) or `oidc_discovery` (works when `issuer_url` is the provider's real public URL). **`spiffe_bundle_endpoint` is accepted by the API but its fetcher is NOT implemented server-side — do not use it.** |
+| `key_source_type` | `static_jwks_url` | `static_jwks_url` (the provider's `/keys`) or `oidc_discovery` (works when `issuer_url` is the provider's real public URL). **`spiffe_bundle_endpoint` has no fetcher server-side and is now rejected at write time** — a trusted issuer cannot be created with it. |
 | `jwks_url` | public URL of `/keys` | Fetched SSRF-hardened; must be publicly routable; cached 10 min. |
 | `expected_aud` | `http://authorizer:8080` | The `aud` the SVID must contain exactly. Equals the workload's `AUDIENCE` env. |
 | `subject_claim` | omitted (defaults `sub`) | For SPIFFE rows the value must be a `spiffe://` URI or the assertion is rejected. |
