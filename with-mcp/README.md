@@ -1,9 +1,49 @@
-# Authorizer + MCP: OAuth-protected Model Context Protocol server
+# Authorizer + MCP
 
-This example shows **Authorizer as the OAuth authorization server protecting an
-MCP server**. A small Node MCP server (official `@modelcontextprotocol/sdk`,
-streamable HTTP transport) exposes two demo tools and accepts only bearer
-tokens that Authorizer minted **for this specific server**.
+Two ways to use Authorizer with the [Model Context Protocol](https://modelcontextprotocol.io):
+
+1. **[Authorizer's built-in MCP server](#part-1-authorizers-built-in-mcp-server)** — turn it on with a flag and let an MCP host (Claude Code, Cursor, …) ask identity and fine-grained permission questions about the signed-in user.
+2. **[Protect your own MCP server](#part-2-protect-your-own-mcp-server)** — Authorizer is the OAuth authorization server; this example's small Node MCP server accepts only tokens Authorizer minted **for it**.
+
+## Part 1: Authorizer's built-in MCP server
+
+Authorizer ships a curated, read-only MCP toolset — `meta`, `profile`, `check_permissions`, `list_permissions` — at `POST <url>/mcp`, enabled with `--mcp-enabled`. `--url` is required with it: every token presented at `/mcp` must carry `aud = <url>/mcp`, and the server refuses to start without a usable `--url`.
+
+```sh
+authorizer --url https://auth.example.com --mcp-enabled \
+  --enable-client-id-metadata-document   # ...your other flags
+```
+
+On a release that includes `authorizer dev`, `authorizer dev` turns on both flags for you and prints the MCP URL with `authorizer dev --print-config`.
+
+**Connect with OAuth.** MCP hosts discover the authorization server from the `401` on `/mcp` (RFC 9728 → RFC 8414) and register themselves. Authorizer supports two self-registration mechanisms, both off by default: Client ID Metadata Documents (`--enable-client-id-metadata-document`, preferred by the MCP spec) and RFC 7591 DCR (`--enable-dynamic-client-registration`, for clients that predate CIMD). With CIMD enabled, Claude Code 2.1.332 accepts the server (`claude mcp list` → *Needs authentication*); sign in from `/mcp` inside Claude Code. If your host reports *does not support dynamic client registration*, also enable DCR:
+
+```sh
+claude mcp add --transport http authorizer https://auth.example.com/mcp
+```
+
+**Connect with a static token** (no browser, useful for CI). Mint a token bound to the MCP resource for a service account — the `resource` parameter is the part people miss; without it the audience is the client id and `/mcp` rejects it:
+
+```sh
+# Create a service account: dashboard → Clients, or the _create_client admin API
+ACCESS_TOKEN=$(curl -s -X POST https://auth.example.com/oauth/token \
+  -d grant_type=client_credentials \
+  -d client_id=$CLIENT_ID -d client_secret=$CLIENT_SECRET \
+  -d scope=openid -d resource=https://auth.example.com/mcp | jq -r .access_token)
+
+claude mcp add --transport http authorizer https://auth.example.com/mcp \
+  --header "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+A static token identifies the **service account**, not a human, so `profile` returns nothing useful and permission checks resolve to `service_account:<client_id>`.
+
+> The older `authorizer mcp` stdio subcommand is **deprecated** and removed in 2.5.0: it ran a second copy of the whole server and served exactly one user per process. Use `--mcp-enabled`.
+
+See the [MCP Server docs](https://docs.authorizer.dev/core/mcp) for the full reference.
+
+## Part 2: Protect your own MCP server
+
+Here Authorizer is the OAuth authorization server for **your** MCP server. A small Node MCP server (official `@modelcontextprotocol/sdk`, streamable HTTP transport) exposes two demo tools and accepts only bearer tokens that Authorizer minted **for this specific server**.
 
 ```
 ┌──────────┐  1. POST /mcp (no token)   ┌─────────────────┐
@@ -25,7 +65,7 @@ tokens that Authorizer minted **for this specific server**.
 └─────────────────────────────────────────────────────────┘
 ```
 
-## How MCP auth maps onto plain OAuth
+### How MCP auth maps onto plain OAuth
 
 The MCP authorization spec is not a new protocol — it is OAuth 2.1 plus two
 RFCs, split across two parties:
@@ -43,7 +83,11 @@ RFCs, split across two parties:
   clients accept this form of AS discovery.
 - JWKS (`/.well-known/jwks.json`) for RS256 verification.
 - `client_credentials` grant for machine identity (agent service accounts,
-  registered via the dashboard or the `_create_client` admin API).
+  registered via the dashboard or the `_create_client` admin API), with an
+  optional RFC 8707 `resource` that binds the token's `aud` to one server.
+- Authorization code + PKCE for a signed-in user, also accepting `resource`
+  (the code exchange must repeat the authorize request's `resource`; a
+  refresh may omit it, but if it names one it must be the same).
 - **RFC 8693 token exchange with RFC 8707 resource binding**: exactly one
   `resource` parameter is required; the delegated token's `aud` is set to it,
   scopes are attenuated (`subject ∩ agent ceiling ∩ requested`), and the
@@ -58,12 +102,12 @@ RFCs, split across two parties:
 - Two tools: `whoami` (echoes the token's subject, scopes and `act`
   delegation chain) and `add`.
 
-> Note: plain `client_credentials` and `authorization_code` tokens carry
-> `aud = <deployment client_id>`, not a resource URI — the resource-bound
-> path in Authorizer today is the token-exchange grant. That is exactly the
-> agent-acting-for-user shape MCP is built for.
+> Since Authorizer 2.4.0, `client_credentials`, authorization code and token
+> exchange all accept `resource`; without it the token's `aud` is the
+> deployment client id, and this server rejects it. Token exchange is the
+> agent-acting-for-a-user shape, and the one this walkthrough ends on.
 
-## Run it
+### Run it
 
 **1. Start Authorizer** (from the `authorizer` repo — dev config uses SQLite,
 admin secret `admin`, port 8080):
@@ -96,6 +140,7 @@ It prints every step of the `401 -> discovery -> token -> 200` sequence:
 [4b] agent service account registered: <client_id>
 [4b] agent actor_token acquired via client_credentials
 [4b] agent token (aud != MCP server) rejected -> HTTP 401
+[4b] agent token with resource=http://localhost:4001/mcp: aud=http://localhost:4001/mcp -> HTTP 200
 [4c] delegated token minted: aud=http://localhost:4001/mcp scope=[openid,email,profile] act.sub=<client_id>
 [5] MCP connected. tools: whoami, add
 [5] whoami -> { "sub": "<user id>", "scope": [...], "aud": "...", "acting_agents": ["<client_id>"] }
@@ -106,7 +151,7 @@ Done: 401 -> discovery -> token -> 200.
 Environment overrides: `AUTHORIZER_URL`, `PORT`, `RESOURCE` (server);
 `MCP_URL`, `ADMIN_SECRET` (client).
 
-## The same flow with curl
+### The same flow with curl
 
 ```bash
 # 1. No token -> 401 with discovery pointer
@@ -144,63 +189,3 @@ curl -s -X POST http://localhost:4001/mcp \
 
 Swap the `resource` value for anything else and step 4 returns 401 —
 that is RFC 8707 doing its job.
-
-## Bonus: Authorizer's own built-in MCP server
-
-Authorizer also *ships* an MCP server of its own, exposing a curated read-only
-toolset — `meta`, `profile`, `check_permissions`, `list_permissions` — so an MCP
-host can ask fine-grained authorization questions ("can this user view
-document:1?") before acting.
-
-Run it on the server you already run:
-
-```sh
-authorizer --url https://auth.example.com --mcp-enabled   # ...your other flags
-```
-
-`--url` is required with `--mcp-enabled`. It is what the audience of every token
-presented at `/mcp` is checked against, and the server refuses to start without
-it.
-
-Then point a client at it — with a **static token**, which is the only path
-verified to work today:
-
-```sh
-# Create a service account: dashboard → Identity → Clients
-# Mint a token bound to the MCP resource (the `resource` param is the part
-# people miss — without it the audience is the client id and /mcp rejects it)
-ACCESS_TOKEN=$(curl -s -X POST https://auth.example.com/oauth/token \
-  -d grant_type=client_credentials \
-  -d client_id=$CLIENT_ID -d client_secret=$CLIENT_SECRET \
-  -d scope=openid -d resource=https://auth.example.com/mcp | jq -r .access_token)
-
-claude mcp add --transport http authorizer https://auth.example.com/mcp \
-  --header "Authorization: Bearer $ACCESS_TOKEN"
-```
-
-`claude mcp list` then reports **✔ Connected**.
-
-> **The OAuth flow needs a self-registration flag turned on.** As of Claude Code
-> 2.1.226 it refuses a server that advertises neither:
-> *"Incompatible auth server: does not support dynamic client registration"* —
-> and it does not fall back to a manually-supplied client id. Authorizer ships
-> **both** mechanisms, off by default: Client ID Metadata Documents
-> (`--enable-client-id-metadata-document`, preferred) and RFC 7591 DCR
-> (`--enable-dynamic-client-registration`, for clients that predate CIMD —
-> Claude Code reads `client_id_metadata_document_supported` and still requires a
-> `registration_endpoint`). Enabling DCR does not downgrade anyone: the MCP
-> spec's priority order is pre-registered → CIMD → DCR.
-
-Note the static token identifies the **service account**, not a human, so
-`profile` returns nothing useful and permission checks resolve to
-`service_account:<client_id>`.
-
-> The older `authorizer mcp` stdio subcommand still works but is **deprecated**
-> and will be removed in 2.5.0. It ran a second copy of the whole server and
-> served exactly one user per process, since its identity was a single
-> `--mcp-bearer` flag.
-
-See the [MCP Server docs](https://docs.authorizer.dev/core/mcp) for details.
-So: **this example** = protecting *your* MCP tools with Authorizer-issued
-tokens; **`--mcp-enabled`** = giving a model safe access to *Authorizer's*
-identity/permission data.
