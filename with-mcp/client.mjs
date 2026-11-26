@@ -6,6 +6,7 @@
 // 4. Mint a delegated, resource-bound token:
 //      a. user signs up / logs in (GraphQL)       -> subject_token
 //      b. agent service-account client_credentials-> actor_token
+//         (without resource: rejected by the MCP server; with resource: accepted)
 //      c. RFC 8693 token exchange + resource=...  -> aud-bound access token
 // 5. Call the MCP server with the token           -> 200, tools work
 //
@@ -127,6 +128,31 @@ const wrongAud = await fetch(MCP_URL, {
 });
 log("4b", `agent token (aud != MCP server) rejected -> HTTP ${wrongAud.status}`);
 if (wrongAud.status !== 401) throw new Error("expected 401 for wrong audience");
+
+// The same grant WITH resource=<this MCP server> (RFC 8707, Authorizer 2.4.0+)
+// is bound to it and accepted. This is the machine-identity path: the token
+// speaks for the service account itself, not for any user.
+const ccBoundRes = await fetch(oidc.token_endpoint, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded",
+    Authorization: `Basic ${basic}`,
+  },
+  body: new URLSearchParams({ grant_type: "client_credentials", resource: prm.resource }),
+});
+const ccBound = await ccBoundRes.json();
+if (!ccBoundRes.ok) throw new Error(JSON.stringify(ccBound));
+const boundPing = await fetch(MCP_URL, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Accept: "application/json, text/event-stream",
+    Authorization: `Bearer ${ccBound.access_token}`,
+  },
+  body: JSON.stringify({ jsonrpc: "2.0", id: 0, method: "ping" }),
+});
+log("4b", `agent token with resource=${prm.resource}: aud=${decodeJwt(ccBound.access_token).aud} -> HTTP ${boundPing.status}`);
+if (boundPing.status !== 200) throw new Error("expected 200 for a resource-bound machine token");
 
 // --- 4c. RFC 8693 token exchange, bound to this MCP server (RFC 8707) ------
 const xchgRes = await fetch(oidc.token_endpoint, {
