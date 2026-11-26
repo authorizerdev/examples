@@ -16,7 +16,7 @@ authorizer --url https://auth.example.com --mcp-enabled \
 
 On a release that includes `authorizer dev`, `authorizer dev` turns on both flags for you and prints the MCP URL with `authorizer dev --print-config`.
 
-**Connect with OAuth.** MCP hosts discover the authorization server from the `401` on `/mcp` (RFC 9728 → RFC 8414) and register themselves. Authorizer supports two self-registration mechanisms, both off by default: Client ID Metadata Documents (`--enable-client-id-metadata-document`, preferred by the MCP spec) and RFC 7591 DCR (`--enable-dynamic-client-registration`, for clients that predate CIMD). With CIMD enabled, Claude Code 2.1.332 accepts the server and prompts for sign-in (`claude mcp list` → *Needs authentication*):
+**Connect with OAuth.** MCP hosts discover the authorization server from the `401` on `/mcp` (RFC 9728 → RFC 8414) and register themselves. Authorizer supports two self-registration mechanisms, both off by default: Client ID Metadata Documents (`--enable-client-id-metadata-document`, preferred by the MCP spec) and RFC 7591 DCR (`--enable-dynamic-client-registration`, for clients that predate CIMD). With CIMD enabled, Claude Code 2.1.332 accepts the server (`claude mcp list` → *Needs authentication*); sign in from `/mcp` inside Claude Code. If your host reports *does not support dynamic client registration*, also enable DCR:
 
 ```sh
 claude mcp add --transport http authorizer https://auth.example.com/mcp
